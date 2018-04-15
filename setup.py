@@ -5,7 +5,7 @@ import re
 PACKAGE_NAME='psaw'
 HERE = path.abspath(path.dirname(__file__))
 
-with open(path.join(HERE, 'README.md'), encoding='utf-8') as fp:
+with open(path.join(HERE, 'README.rst'), encoding='utf-8') as fp:
     README = fp.read()
 
 with open(path.join(HERE, PACKAGE_NAME, '__init__.py'),
