@@ -1,6 +1,6 @@
 from setuptools import setup
 from os import path
-import re 
+import re
 
 PACKAGE_NAME='psaw'
 HERE = path.abspath(path.dirname(__file__))
@@ -22,6 +22,7 @@ setup(name=PACKAGE_NAME,
       url='http://github.com/dmarx/psaw',
       license='Simplified BSD License',
       install_requires=['requests'],
+      keywords='reddit api wrapper pushshift',
       classifiers=[
           'Development Status :: 3 - Alpha',
           'Environment :: Console',
