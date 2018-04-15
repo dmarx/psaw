@@ -30,7 +30,6 @@ class PushshiftAPIMinimal(object):
     @property
     def utc_offset_secs(self):
         if not self._utc_offset_secs:
-            #self._utc_offset_secs = dt.datetime.utcnow().astimezone().utcoffset().total_seconds()
             self._utc_offset_secs =  dt.utcnow().astimezone().utcoffset().total_seconds()
         return self._utc_offset_secs
 
@@ -58,7 +57,7 @@ class PushshiftAPIMinimal(object):
         self._last_request_time = time.time()
 
     def _add_nec_args(self, payload):
-        #if 'aggs' in payload:
+        """Adds 'limit' and 'created_utc' arguments to the payload as necessary."""
         if self._limited(payload):
             # Do nothing I guess? Not sure how paging works on this endpoint...
             return
@@ -80,12 +79,11 @@ class PushshiftAPIMinimal(object):
             i+=1
         response_json = json.loads(response.text)
         outv = response_json['data']
-        #if 'aggs' in payload:
         if self._limited(payload):
             outv = response_json
         return outv
 
-    def _query(self, kind, stop_condition=lambda **x: False, **kwargs):
+    def _query(self, kind, stop_condition=lambda x: False, **kwargs):
         limit = kwargs.get('limit', None)
         payload = copy.deepcopy(kwargs)
         n = 0
@@ -99,7 +97,6 @@ class PushshiftAPIMinimal(object):
                     limit = 0
 
             results = self._get(kind, payload)
-            #if 'aggs' in payload:
             if self._limited(payload):
                 yield results
                 return
@@ -108,10 +105,10 @@ class PushshiftAPIMinimal(object):
                 return
             for thing in results:
                 n+=1
-                if stop_condition(**thing):
-                    return
                 thing = self._wrap_thing(thing, kind)
                 yield thing
+                if stop_condition(thing):
+                    return
             payload['before'] = thing.created_utc
             if (limit is not None) & (limit == 0):
                 return

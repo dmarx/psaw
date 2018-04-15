@@ -45,6 +45,7 @@ Features
 * Extremely simple interface to pass query arguments to the API. The API is sparsely documented,
   so it's often fruitful to just try an argument and see if it works.
 * Limited support for pushshift's ``aggs`` argument.
+* A ``stop_condition`` argument to make it simple to stop yielding results given arbitrary user-defined criteria
 
 Demo usage
 ----------
@@ -126,7 +127,6 @@ API requests returning 500 comments each. Alternatively, the generator can be qu
 Using the ``aggs`` argument to count comments mentioning trump each hour in past week
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-
 Replicating the example from the pushshift documentation:
 
 https://api.pushshift.io/reddit/search/comment/?q=trump&after=7d&aggs=created_utc&frequency=hour&size=0
@@ -147,6 +147,19 @@ the result to a namedtuple for dot notation attribute access).
                              )
 
     result = next(gen)
+
+Using the ``stop_condition`` argument to get the most recent submission by a bot account
+-------------------------------------------------------------------------------------------
+
+.. code-block:: python
+
+    gen = api.search_submissions(stop_condition=lambda x: 'bot' in x.author)
+
+    for subm in enumerate(gen):
+        pass
+
+    print(subm.author)
+
 
 License
 -------
