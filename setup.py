@@ -23,6 +23,7 @@ setup(name=PACKAGE_NAME,
       license='Simplified BSD License',
       install_requires=['requests'],
       keywords='reddit api wrapper pushshift',
+      python_requires='>=3',
       classifiers=[
           'Development Status :: 3 - Alpha',
           'Environment :: Console',
