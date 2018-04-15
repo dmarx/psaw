@@ -8,7 +8,7 @@ Installation
 
 .. code-block:: bash
 
-    pip install -e git+git://github.com/dmarx/psaw.git
+    pip install psaw
 
 At present, only python 3 is supported.
 
