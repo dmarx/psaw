@@ -76,7 +76,7 @@ The ``created_utc`` field will be added automatically (it's used for paging).
     import datetime as dt
 
     start_epoch=int(dt.datetime(2017, 1, 1).timestamp())
-    
+
     list(api.search_submissions(after=start_epoch,
                                 subreddit='politics',
                                 filter=['url','author', 'title', 'subreddit'],
@@ -153,7 +153,7 @@ the result to a namedtuple for dot notation attribute access).
     result = next(gen)
 
 Using the ``stop_condition`` argument to get the most recent submission by a bot account
--------------------------------------------------------------------------------------------
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. code-block:: python
 
