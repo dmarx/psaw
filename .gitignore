@@ -3,6 +3,7 @@
 *.egg-info/
 *.eggs/
 *.pyc
+*.pypirc
 *.pyproj
 *.sln
 *.vs/
