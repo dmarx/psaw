@@ -73,10 +73,14 @@ The ``created_utc`` field will be added automatically (it's used for paging).
 
 .. code-block:: python
 
-    list(api.search_submissions(after=int(dt.datetime(2017, 1, 1).timestamp()),
-                            subreddit='politics',
-                            filter=['url','author', 'title', 'subreddit'],
-                            limit=10))
+    import datetime as dt
+
+    start_epoch=int(dt.datetime(2017, 1, 1).timestamp())
+    
+    list(api.search_submissions(after=start_epoch,
+                                subreddit='politics',
+                                filter=['url','author', 'title', 'subreddit'],
+                                limit=10))
 
 Trying a search argument that doesn't actually work
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
