@@ -30,7 +30,10 @@ class PushshiftAPIMinimal(object):
     @property
     def utc_offset_secs(self):
         if not self._utc_offset_secs:
-            self._utc_offset_secs =  dt.utcnow().astimezone().utcoffset().total_seconds()
+            try:
+                self._utc_offset_secs = dt.utcnow().astimezone().utcoffset().total_seconds()
+            except ValueError:
+                self._utc_offset_secs = 0
         return self._utc_offset_secs
 
     def _limited(self, payload):
