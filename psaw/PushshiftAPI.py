@@ -13,7 +13,9 @@ class PushshiftAPIMinimal(object):
                  max_sleep=3600,
                  backoff=2,
                  rate_limit=1,
-                 max_results_per_request=500
+                 max_results_per_request=500,
+                 detect_local_tz=False,
+                 utc_offset_secs=None
                 ):
         assert rate_limit >=1
         assert max_results_per_request <= 500
@@ -25,14 +27,19 @@ class PushshiftAPIMinimal(object):
         self.rate_limit  = rate_limit
         self.max_results_per_request = max_results_per_request
         self._last_request_time = 0
-        self._utc_offset_secs = None
+
+        self._utc_offset_secs = utc_offset_secs
+        self._detect_local_tz = detect_local_tz
 
     @property
     def utc_offset_secs(self):
-        if not self._utc_offset_secs:
-            try:
-                self._utc_offset_secs = dt.utcnow().astimezone().utcoffset().total_seconds()
-            except ValueError:
+        if self._utc_offset_secs is None:
+            if self._detect_local_tz:
+                try:
+                    self._utc_offset_secs = dt.utcnow().astimezone().utcoffset().total_seconds()
+                except ValueError:
+                    self._utc_offset_secs = 0
+            else:
                 self._utc_offset_secs = 0
         return self._utc_offset_secs
 
