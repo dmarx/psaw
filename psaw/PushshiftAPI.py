@@ -14,7 +14,7 @@ class PushshiftAPIMinimal(object):
                  backoff=2,
                  rate_limit=1,
                  max_results_per_request=500,
-                 detect_local_tz=False,
+                 detect_local_tz=True,
                  utc_offset_secs=None
                 ):
         assert rate_limit >=1
