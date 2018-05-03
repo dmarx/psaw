@@ -6,7 +6,7 @@ import time
 from datetime import datetime as dt
 
 class PushshiftAPIMinimal(object):
-    base_url = 'https://api.pushshift.io/reddit/{}/search/'
+    base_url = 'https://api.pushshift.io/reddit/{}/'
     _limited_args = ('aggs')
     def __init__(self,
                  max_retries=20,
@@ -30,10 +30,7 @@ class PushshiftAPIMinimal(object):
     @property
     def utc_offset_secs(self):
         if not self._utc_offset_secs:
-            try:
-                self._utc_offset_secs = dt.utcnow().astimezone().utcoffset().total_seconds()
-            except ValueError:
-                self._utc_offset_secs = 0
+            self._utc_offset_secs =  dt.utcnow().astimezone().utcoffset().total_seconds()
         return self._utc_offset_secs
 
     def _limited(self, payload):
@@ -73,7 +70,7 @@ class PushshiftAPIMinimal(object):
 
     def _get(self, kind, payload):
         self._add_nec_args(payload)
-        url = self.base_url.format(kind)
+        url = self.base_url.format(kind) + 'search/'
         i, success = 0, False
         while (not success) and (i<self.max_retries):
             self._rate_limit(i)
@@ -98,7 +95,6 @@ class PushshiftAPIMinimal(object):
                 else:
                     payload['limit'] = limit
                     limit = 0
-
             results = self._get(kind, payload)
             if self._limited(payload):
                 yield results
@@ -115,11 +111,34 @@ class PushshiftAPIMinimal(object):
             payload['before'] = thing.created_utc
             if (limit is not None) & (limit == 0):
                 return
+
+    def _comments(self, kind, **kwargs):
+        base36_id = kwargs.get('base36_id', None)
+        if base36_id: 
+                url = self.base_url.format(kind) + 'comment_ids/' + base36_id
+        else:
+                raise ValueError('Invalid Argument: must provide id of the post, base36_id = <your id>')
+                return
+        i, success = 0, False
+        while (not success) and (i<self.max_retries):
+            self._rate_limit(i)
+            response = requests.get(url)
+            success = response.status_code == 200
+            i+=1
+        response_json = json.loads(response.text)
+        outv = response_json['data']
+        params = {'ids' : outv}
+        return self._query(kind='comment', **params)
+        
+
     def search_submissions(self, **kwargs):
         return self._query(kind='submission', **kwargs)
 
     def search_comments(self, **kwargs):
         return self._query(kind='comment', **kwargs)
+
+    def get_comments_of_post(self, **kwargs):
+        return self._comments(kind='submission', **kwargs)
 
 class PushshiftAPI(PushshiftAPIMinimal):
     # Fill out this class with more user-friendly features later
