@@ -114,10 +114,12 @@ class PushshiftAPIMinimal(object):
 
     def _comments(self, kind, **kwargs):
         base36_id = kwargs.get('base36_id', None)
-        if base36_id: 
+        limit = kwargs.get('limit', None)
+        if base36_id and limit:
+                del kwargs['base36_id']
                 url = self.base_url.format(kind) + 'comment_ids/' + base36_id
         else:
-                raise ValueError('Invalid Argument: must provide id of the post, base36_id = <your id>')
+                raise ValueError('Invalid Argument: must provide id of the post and limit')
                 return
         i, success = 0, False
         while (not success) and (i<self.max_retries):
@@ -128,6 +130,7 @@ class PushshiftAPIMinimal(object):
         response_json = json.loads(response.text)
         outv = response_json['data']
         params = {'ids' : outv}
+        params.update(kwargs)
         return self._query(kind='comment', **params)
         
 
