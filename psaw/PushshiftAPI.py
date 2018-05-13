@@ -1,35 +1,72 @@
-from collections import namedtuple
+from collections import namedtuple, deque
 import copy
 import json
 import requests
 import time
 from datetime import datetime as dt
 
+class RateLimitCache(object):
+    def __init__(self, n, t=60):
+        self.n = n
+        self.t = t
+        self.cache = deque()
+    @property
+    def delta(self):
+        """Time since earliest call"""
+        if len(self.cache) == 0:
+            return 0
+        return (time.time() - self.cache[0])
+    def update(self):
+        while self.delta > self.t:
+            try:
+                self.cache.popleft()
+            except IndexError:
+                return
+    @property
+    def blocked(self):
+        """Test if additional calls need to be blocked"""
+        self.update()
+        return len(self.cache) >= self.n
+    @property
+    def interval(self):
+        self.update()
+        if self.t > self.delta:
+             return self.t - self.delta
+        else:
+            return 0
+    def new(self):
+        self.update()
+        if self.blocked:
+            raise Exception("RateLimitCache is blocked.")
+        self.cache.append(time.time())
+
 class PushshiftAPIMinimal(object):
-    base_url = 'https://api.pushshift.io/reddit/{}/search/'
+    base_url = {'search':'https://api.pushshift.io/reddit/{}/search/',
+                'meta':'https://api.pushshift.io/meta/'}
     _limited_args = ('aggs')
     def __init__(self,
                  max_retries=20,
                  max_sleep=3600,
                  backoff=2,
-                 rate_limit=1,
+                 rate_limit_per_minute=None,
                  max_results_per_request=500,
                  detect_local_tz=True,
                  utc_offset_secs=None
                 ):
-        assert rate_limit >=1
         assert max_results_per_request <= 500
         assert backoff >= 1
 
         self.max_retries = max_retries
         self.max_sleep   = max_sleep
         self.backoff     = backoff
-        self.rate_limit  = rate_limit
         self.max_results_per_request = max_results_per_request
-        self._last_request_time = 0
 
         self._utc_offset_secs = utc_offset_secs
         self._detect_local_tz = detect_local_tz
+
+        if rate_limit_per_minute is None:
+            rate_limit_per_minute = self._get(self.base_url['meta'])['server_ratelimit_per_minute']
+        self._rlcache = RateLimitCache(n=rate_limit_per_minute, t=60)
 
     @property
     def utc_offset_secs(self):
@@ -58,13 +95,16 @@ class PushshiftAPIMinimal(object):
         thing = ThingType(**thing)
         return thing
 
-    def _rate_limit(self, nth_request=0):
-        d = time.time() - self._last_request_time
-        interval = max(self.rate_limit, self.backoff*nth_request)
+    def _impose_rate_limit(self, nth_request=0):
+        if not hasattr(self, '_rlcache'):
+            return
+        interval = 0
+        if self._rlcache.blocked:
+            interval = self._rlcache.interval
+        interval = max(interval, self.backoff*nth_request)
         interval = min(interval, self.max_sleep)
-        if d < interval:
-            time.sleep(interval-d)
-        self._last_request_time = time.time()
+        if interval > 0:
+            time.sleep(interval)
 
     def _add_nec_args(self, payload):
         """Adds 'limit' and 'created_utc' arguments to the payload as necessary."""
@@ -82,20 +122,14 @@ class PushshiftAPIMinimal(object):
             if 'created_utc' not in payload['filter']:
                 payload['filter'].append('created_utc')
 
-    def _get(self, kind, payload):
-        self._add_nec_args(payload)
-        url = self.base_url.format(kind)
+    def _get(self, url, payload={}, endpoint='search'):
         i, success = 0, False
         while (not success) and (i<self.max_retries):
-            self._rate_limit(i)
+            self._impose_rate_limit(i)
             response = requests.get(url, params=payload)
             success = response.status_code == 200
             i+=1
-        response_json = json.loads(response.text)
-        outv = response_json['data']
-        if self._limited(payload):
-            outv = response_json
-        return outv
+        return json.loads(response.text)
 
     def _query(self, kind, stop_condition=lambda x: False, **kwargs):
         limit = kwargs.get('limit', None)
@@ -109,12 +143,14 @@ class PushshiftAPIMinimal(object):
                 else:
                     payload['limit'] = limit
                     limit = 0
-
-            results = self._get(kind, payload)
+            self._add_nec_args(payload)
+            url = self.base_url['search'].format(kind)
+            results = self._get(url, payload)
             if self._limited(payload):
                 yield results
                 return
 
+            results = results['data']
             if len(results) == 0:
                 return
             for thing in results:
