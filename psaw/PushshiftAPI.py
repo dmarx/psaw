@@ -73,10 +73,14 @@ class PushshiftAPIMinimal(object):
             return
         if 'limit' not in payload:
             payload['limit'] = self.max_results_per_request
-        if 'filter' in payload and payload.get('created_utc', None) is None:
+        if 'filter' in payload: #and payload.get('created_utc', None) is None:
             if not isinstance(payload['filter'], list):
-                payload['filter'] = list(payload['filter'])
-            payload['filter'].append('created_utc')
+                if isinstance(payload['filter'], str):
+                    payload['filter'] = [payload['filter']]
+                else:
+                    payload['filter'] = list(payload['filter'])
+            if 'created_utc' not in payload['filter']:
+                payload['filter'].append('created_utc')
 
     def _get(self, kind, payload):
         self._add_nec_args(payload)
