@@ -159,7 +159,7 @@ Using the ``stop_condition`` argument to get the most recent submission by a bot
 
     gen = api.search_submissions(stop_condition=lambda x: 'bot' in x.author)
 
-    for subm in enumerate(gen):
+    for subm in gen:
         pass
 
     print(subm.author)
