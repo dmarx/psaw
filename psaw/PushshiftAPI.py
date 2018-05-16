@@ -41,8 +41,9 @@ class RateLimitCache(object):
         self.cache.append(time.time())
 
 class PushshiftAPIMinimal(object):
-    base_url = {'search':'https://api.pushshift.io/reddit/{}/search/',
-                'meta':'https://api.pushshift.io/meta/'}
+    #base_url = {'search':'https://api.pushshift.io/reddit/{}/search/',
+    #            'meta':'https://api.pushshift.io/meta/'}
+    _base_url = 'https://{domain}.pushshift.io/{{endpoint}}'
     _limited_args = ('aggs')
     def __init__(self,
                  max_retries=20,
@@ -51,7 +52,8 @@ class PushshiftAPIMinimal(object):
                  rate_limit_per_minute=None,
                  max_results_per_request=500,
                  detect_local_tz=True,
-                 utc_offset_secs=None
+                 utc_offset_secs=None,
+                 domain='api'
                 ):
         assert max_results_per_request <= 500
         assert backoff >= 1
@@ -64,20 +66,30 @@ class PushshiftAPIMinimal(object):
         self._utc_offset_secs = utc_offset_secs
         self._detect_local_tz = detect_local_tz
 
+        self.domain = domain
+
         if rate_limit_per_minute is None:
-            rate_limit_per_minute = self._get(self.base_url['meta'])['server_ratelimit_per_minute']
+            response = self._get(self.base_url.format(endpoint='meta'))
+            rate_limit_per_minute = response['server_ratelimit_per_minute']
         self._rlcache = RateLimitCache(n=rate_limit_per_minute, t=60)
 
     @property
+    def base_url(self):
+        return self._base_url.format(domain=self.domain)
+
+    @property
     def utc_offset_secs(self):
-        if self._utc_offset_secs is None:
-            if self._detect_local_tz:
-                try:
-                    self._utc_offset_secs = dt.utcnow().astimezone().utcoffset().total_seconds()
-                except ValueError:
-                    self._utc_offset_secs = 0
-            else:
+        if self._utc_offset_secs is not None:
+            return self._utc_offset_secs
+
+        if self._detect_local_tz:
+            try:
+                self._utc_offset_secs = dt.utcnow().astimezone().utcoffset().total_seconds()
+            except ValueError:
                 self._utc_offset_secs = 0
+        else:
+            self._utc_offset_secs = 0
+
         return self._utc_offset_secs
 
     def _limited(self, payload):
@@ -131,26 +143,31 @@ class PushshiftAPIMinimal(object):
             i+=1
         return json.loads(response.text)
 
-    def _query(self, kind, stop_condition=lambda x: False, **kwargs):
-        limit = kwargs.get('limit', None)
-        payload = copy.deepcopy(kwargs)
+    def _handle_paging(self, url):
+        limit = self.payload.get('limit', None)
         n = 0
         while True:
             if limit is not None:
                 if limit > self.max_results_per_request:
-                    payload['limit'] = self.max_results_per_request
+                    self.payload['limit'] = self.max_results_per_request
                     limit -= self.max_results_per_request
                 else:
                     payload['limit'] = limit
                     limit = 0
-            self._add_nec_args(payload)
-            url = self.base_url['search'].format(kind)
-            results = self._get(url, payload)
-            if self._limited(payload):
-                yield results
+            self._add_nec_args(self.payload)
+
+            yield self._get(url, self.payload)
+
+            if (limit is not None) & (limit == 0):
                 return
 
-            results = results['data']
+    def _search(self, kind, stop_condition=lambda x: False, **kwargs):
+        self.payload = copy.deepcopy(kwargs)
+        endpoint = 'reddit/{}/search'.format(kind)
+        url = self.base_url.format(endpoint=endpoint)
+
+        for response in self._handle_paging(url):
+            results = response['data']
             if len(results) == 0:
                 return
             for thing in results:
@@ -159,14 +176,21 @@ class PushshiftAPIMinimal(object):
                 yield thing
                 if stop_condition(thing):
                     return
-            payload['before'] = thing.created_utc
-            if (limit is not None) & (limit == 0):
-                return
+
+                # For paging.
+                self.payload['before'] = thing.created_utc
+
     def search_submissions(self, **kwargs):
-        return self._query(kind='submission', **kwargs)
+        return self._search(kind='submission', **kwargs)
 
     def search_comments(self, **kwargs):
-        return self._query(kind='comment', **kwargs)
+        return self._search(kind='comment', **kwargs)
+
+    def get_submission_comment_ids(self, submission_id, **kwargs):
+        self.payload = copy.deepcopy(kwargs)
+        endpoint = 'reddit/submission/comment_ids'
+        url = self.base_url.format(endpoint=endpoint)
+
 
 class PushshiftAPI(PushshiftAPIMinimal):
     # Fill out this class with more user-friendly features later
