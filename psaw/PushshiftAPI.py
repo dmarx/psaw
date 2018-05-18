@@ -143,7 +143,7 @@ class PushshiftAPIMinimal(object):
             if 'created_utc' not in payload['filter']:
                 payload['filter'].append('created_utc')
 
-    def _get(self, url, payload={}, endpoint='search'):
+    def _get(self, url, payload={}):
         i, success = 0, False
         while (not success) and (i<self.max_retries):
             self._impose_rate_limit(i)
@@ -208,17 +208,6 @@ class PushshiftAPIMinimal(object):
             # For paging.
             self.payload['before'] = thing.created_utc
 
-    def search_submissions(self, **kwargs):
-        return self._search(kind='submission', **kwargs)
-
-    def search_comments(self, **kwargs):
-        return self._search(kind='comment', **kwargs)
-
-    def get_submission_comment_ids(self, submission_id, **kwargs):
-        self.payload = copy.deepcopy(kwargs)
-        endpoint = 'reddit/submission/comment_ids'
-        url = self.base_url.format(endpoint=endpoint)
-
 
 #class PushshiftAPI(PushshiftAPIMinimal):
     # Fill out this class with more user-friendly features later
@@ -238,6 +227,13 @@ class PushshiftAPI(PushshiftAPIMinimal):
     def search_submissions(self, **kwargs):
         return self._search_func(kind='submission', **kwargs)
 
+    def _get_submission_comment_ids(self, submission_id, **kwargs):
+        self.payload = copy.deepcopy(kwargs)
+        endpoint = 'reddit/submission/comment_ids/{}'.format(submission_id)
+        url = self.base_url.format(endpoint=endpoint)
+        print(url)
+        return self._get(url, self.payload)
+
     def _praw_search(self, **kwargs):
         prefix = self._thing_prefix[kwargs['kind'].title()]
         client_return_batch = kwargs.get('return_batch')
@@ -246,7 +242,13 @@ class PushshiftAPI(PushshiftAPIMinimal):
 
         if 'filter' in kwargs:
             kwargs.pop('filter')
-        for batch in self._search(return_batch=True, filter='id', **kwargs):
+
+
+        gen = self._search(return_batch=True, filter='id', **kwargs)
+        if kwargs.get('kind') == 'comment' and kwargs.get('submission_id'):
+            gen = self._get_submission_comment_ids(**kwargs)
+
+        for batch in gen:
             fullnames = [prefix + thing.id for thing in batch]
             praw_batch = self.r.info(fullnames=fullnames)
             if client_return_batch:
