@@ -40,11 +40,20 @@ class RateLimitCache(object):
             raise Exception("RateLimitCache is blocked.")
         self.cache.append(time.time())
 
+
 class PushshiftAPIMinimal(object):
     #base_url = {'search':'https://api.pushshift.io/reddit/{}/search/',
     #            'meta':'https://api.pushshift.io/meta/'}
     _base_url = 'https://{domain}.pushshift.io/{{endpoint}}'
     _limited_args = ('aggs')
+    _thing_prefix = {
+        	'Comment':'t1_',
+        	'Account':'t2_',
+        	'Link':'t3_',
+        	'Message':'t4_',
+        	'Subreddit':'t5_',
+        	'Award':'t6_'
+    }
     def __init__(self,
                  max_retries=20,
                  max_sleep=3600,
@@ -221,11 +230,22 @@ class WithPraw(PushshiftAPIMinimal):
         self.r = r
 
     def search_comments(self, **kwargs):
-        return self._praw_get(kind='comment', **kwargs)
+        return self._praw_search(kind='comment', **kwargs)
 
     def search_submissions(self, **kwargs):
-        return self._praw_get(kind='submission', **kwargs)
+        return self._praw_search(kind='submission', **kwargs)
 
-    def _praw_get(self, **kwargs):
-        for c in self._search(**kwargs):
-            yield c
+    def _praw_search(self, **kwargs):
+        prefix = self._thing_prefix[kwargs['kind'].title()]
+        client_return_batch = kwargs.get('return_batch')
+        if client_return_batch is False:
+            kwargs.pop('return_batch')
+
+        for batch in self._search(return_batch=True, **kwargs):
+            fullnames = [prefix + thing.id for thing in batch]
+            praw_batch = self.r.info(fullnames=fullnames)
+            if client_return_batch:
+                yield praw_batch
+            else:
+                for praw_thing in praw_batch:
+                    yield praw_thing
