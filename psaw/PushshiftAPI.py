@@ -145,14 +145,14 @@ class PushshiftAPIMinimal(object):
 
     def _handle_paging(self, url):
         limit = self.payload.get('limit', None)
-        n = 0
+        #n = 0
         while True:
             if limit is not None:
                 if limit > self.max_results_per_request:
                     self.payload['limit'] = self.max_results_per_request
                     limit -= self.max_results_per_request
                 else:
-                    payload['limit'] = limit
+                    self.payload['limit'] = limit
                     limit = 0
             self._add_nec_args(self.payload)
 
@@ -161,7 +161,11 @@ class PushshiftAPIMinimal(object):
             if (limit is not None) & (limit == 0):
                 return
 
-    def _search(self, kind, stop_condition=lambda x: False, **kwargs):
+    def _search(self,
+                kind,
+                stop_condition=lambda x: False,
+                return_batch=False,
+                **kwargs):
         self.payload = copy.deepcopy(kwargs)
         endpoint = 'reddit/{}/search'.format(kind)
         url = self.base_url.format(endpoint=endpoint)
@@ -170,15 +174,30 @@ class PushshiftAPIMinimal(object):
             results = response['data']
             if len(results) == 0:
                 return
+            if return_batch:
+                #print("initializing batch after request")
+                batch = []
+
             for thing in results:
-                n+=1
+                #n+=1
                 thing = self._wrap_thing(thing, kind)
-                yield thing
+
+                if return_batch:
+                    #print("appending to batch")
+                    batch.append(thing)
+                else:
+                    yield thing
+
                 if stop_condition(thing):
+                    if return_batch:
+                        return batch
                     return
 
-                # For paging.
-                self.payload['before'] = thing.created_utc
+            if return_batch:
+                yield batch
+
+            # For paging.
+            self.payload['before'] = thing.created_utc
 
     def search_submissions(self, **kwargs):
         return self._search(kind='submission', **kwargs)
@@ -195,3 +214,18 @@ class PushshiftAPIMinimal(object):
 class PushshiftAPI(PushshiftAPIMinimal):
     # Fill out this class with more user-friendly features later
     pass
+
+class WithPraw(PushshiftAPIMinimal):
+    def __init__(self, r, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.r = r
+
+    def search_comments(self, **kwargs):
+        return self._praw_get(kind='comment', **kwargs)
+
+    def search_submissions(self, **kwargs):
+        return self._praw_get(kind='submission', **kwargs)
+
+    def _praw_get(self, **kwargs):
+        for c in self._search(**kwargs):
+            yield c
