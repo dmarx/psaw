@@ -184,15 +184,12 @@ class PushshiftAPIMinimal(object):
             if len(results) == 0:
                 return
             if return_batch:
-                #print("initializing batch after request")
                 batch = []
 
             for thing in results:
-                #n+=1
                 thing = self._wrap_thing(thing, kind)
 
                 if return_batch:
-                    #print("appending to batch")
                     batch.append(thing)
                 else:
                     yield thing
@@ -219,11 +216,9 @@ class PushshiftAPI(PushshiftAPIMinimal):
         self.r = r
         self._search_func = self._search
         if r is not None:
-            print("using praw")
             self._search_func = self._praw_search
 
     def search_comments(self, **kwargs):
-        print(kwargs.keys())
         return self._search_func(kind='comment', **kwargs)
 
     def search_submissions(self, **kwargs):
@@ -233,11 +228,9 @@ class PushshiftAPI(PushshiftAPIMinimal):
         self.payload = copy.deepcopy(kwargs)
         endpoint = 'reddit/submission/comment_ids/{}'.format(submission_id)
         url = self.base_url.format(endpoint=endpoint)
-        print(url)
         return self._get(url, self.payload)['data']
 
     def _praw_search(self, **kwargs):
-        print(kwargs.keys())
         prefix = self._thing_prefix[kwargs['kind'].title()]
 
         self.payload = copy.deepcopy(kwargs)
@@ -251,20 +244,14 @@ class PushshiftAPI(PushshiftAPIMinimal):
 
 
         gen = self._search(return_batch=True, filter='id', **self.payload)
-        print(kwargs.get('kind'), kwargs.get('submission_id'))
         using_gsci = False
         if kwargs.get('kind') == 'comment' and self.payload.get('submission_id'):
-
-            print("using _get_submission_comment_ids")
             using_gsci = True
             gen = [self._get_submission_comment_ids(**kwargs)]
 
-        print("gen constructed")
         for batch in gen:
-            print(type(batch[0]))
             if using_gsci:
                 fullnames = [prefix + base36id for base36id in batch]
-                print(fullnames)
             else:
                 fullnames = [prefix + c.id for c in batch]
             praw_batch = self.r.info(fullnames=fullnames)
