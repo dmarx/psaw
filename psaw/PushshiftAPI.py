@@ -220,20 +220,23 @@ class PushshiftAPIMinimal(object):
         url = self.base_url.format(endpoint=endpoint)
 
 
-class PushshiftAPI(PushshiftAPIMinimal):
+#class PushshiftAPI(PushshiftAPIMinimal):
     # Fill out this class with more user-friendly features later
-    pass
+#    pass
 
-class WithPraw(PushshiftAPIMinimal):
-    def __init__(self, r, *args, **kwargs):
+class PushshiftAPI(PushshiftAPIMinimal):
+    def __init__(self, r=None, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.r = r
+        self._search_func = self._search
+        if r is not None:
+            self._search_func = self._praw_search
 
     def search_comments(self, **kwargs):
-        return self._praw_search(kind='comment', **kwargs)
+        return self._search_func(kind='comment', **kwargs)
 
     def search_submissions(self, **kwargs):
-        return self._praw_search(kind='submission', **kwargs)
+        return self._search_func(kind='submission', **kwargs)
 
     def _praw_search(self, **kwargs):
         prefix = self._thing_prefix[kwargs['kind'].title()]
@@ -241,7 +244,9 @@ class WithPraw(PushshiftAPIMinimal):
         if client_return_batch is False:
             kwargs.pop('return_batch')
 
-        for batch in self._search(return_batch=True, **kwargs):
+        if 'filter' in kwargs:
+            kwargs.pop('filter')
+        for batch in self._search(return_batch=True, filter='id', **kwargs):
             fullnames = [prefix + thing.id for thing in batch]
             praw_batch = self.r.info(fullnames=fullnames)
             if client_return_batch:
