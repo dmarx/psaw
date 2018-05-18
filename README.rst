@@ -20,11 +20,10 @@ A minimalist wrapper for searching public reddit comments/submissions via the pu
 Pushshift is an extremely useful resource, but the API is poorly documented. As such, this API wrapper
 is currently designed to make it easy to pass pretty much any search parameter the user wants to try.
 
-Although it is not necessarily reflective of the current status of the API, I recommend you
-attempt to familiarize yourself with the Pushshift API documentation to better understand what search
-arguments are likely to work. The documentation is distributed across several locations:
+Although it is not necessarily reflective of the current status of the API, you should
+attempt to familiarize yourself with the Pushshift API documentation to better understand
+what search arguments are likely to work.
 
-* `API Documentaion on Google Docs <https://docs.google.com/document/d/171VdjT-QKJi6ul9xYJ4kmiHeC7t_3G31Ce8eozKp3VQ/edit>`_
 * `API Documentation on github <https://github.com/pushshift/api>`_
 * `/r/pushshift <https://www.reddit.com/r/pushshift/>`_
 
@@ -37,15 +36,27 @@ Features
   as a default per consultation with Pushshift's maintainer,
   `/u/Stuck_in_the_matrix <https://www.reddit.com/u/Stuck_in_the_matrix>`_.
 * Handles paging of results. Returns all historical results for a given query by default.
-* Returns results in ``comment`` and ``submission`` objects whose API is similar to the corresponding ``praw``
-  objects. Additionally, result objects have an additional ``.d_`` attribute that offers dict
-  access to the associated data attributes.
-* Adds a ``created`` attribute which converts a comment/submission's ``created_utc`` timestamp
-  to the user's local time.
-* Extremely simple interface to pass query arguments to the API. The API is sparsely documented,
+* Optionally handles incorporation of ``praw`` to fetch objects after getting ids from pushshift
+* If not using ``praw``, returns results in ``comment`` and ``submission`` objects whose
+  API is similar to the corresponding ``praw`` objects. Additionally, result objects have
+  an additional ``.d_`` attribute that offers dict access to the associated data attributes.
+* Optionally adds a ``created`` attribute which converts a comment/submission's ``created_utc``
+  timestamp to the user's local time. (may raise exceptions for users with certain timezone
+  settings).
+* Simple interface to pass query arguments to the API. The API is sparsely documented,
   so it's often fruitful to just try an argument and see if it works.
 * Limited support for pushshift's ``aggs`` argument.
 * A ``stop_condition`` argument to make it simple to stop yielding results given arbitrary user-defined criteria
+
+WARNINGS
+--------
+
+* Using non-default sort may result in unexpected behavior.
+* Default behavior is to continuously hit the pushshift api. If a query is taking
+  longer than expected to return results, it's possible that psaw is pulling more data
+  than you may want or is caught in some kind of loop.
+* I strongly recommend prototyping queries by printing to stdout to ensure you're getting the 
+  desired behavior.
 
 Demo usage
 ----------
@@ -55,6 +66,16 @@ Demo usage
     from psaw import PushshiftAPI
 
     api = PushshiftAPI()
+
+Or to use pushshift search to fetch ids and then use praw to fetch objects:
+
+.. code-block:: python
+
+    import praw
+    from psaw import PushshiftAPI
+
+    r = praw.Reddit(...)
+    api = PushshiftAPI(r)
 
 
 100 most recent submissions
