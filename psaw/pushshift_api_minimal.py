@@ -1,52 +1,13 @@
-from collections import namedtuple, deque
 import copy
-import json
-import requests
 import time
+import json
+from collections import namedtuple
 from datetime import datetime as dt
 
+import requests
+from .rate_limit_cache import RateLimitCache
 
-class RateLimitCache(object):
-    def __init__(self, n, t=60):
-        self.n = n
-        self.t = t
-        self.cache = deque()
-
-    @property
-    def delta(self):
-        """Time since earliest call"""
-        if len(self.cache) == 0:
-            return 0
-        return time.time() - self.cache[0]
-
-    def update(self):
-        while self.delta > self.t:
-            try:
-                self.cache.popleft()
-            except IndexError:
-                return
-
-    @property
-    def blocked(self):
-        """Test if additional calls need to be blocked"""
-        self.update()
-        return len(self.cache) >= self.n
-
-    @property
-    def interval(self):
-        self.update()
-        if self.t > self.delta:
-            return self.t - self.delta
-        else:
-            return 0
-
-    def new(self):
-        self.update()
-        if self.blocked:
-            raise Exception("RateLimitCache is blocked.")
-        self.cache.append(time.time())
-
-
+# pylint: disable=too-many-instance-attributes
 class PushshiftAPIMinimal(object):
     # base_url = {'search':'https://api.pushshift.io/reddit/{}/search/',
     #            'meta':'https://api.pushshift.io/meta/'}
@@ -61,6 +22,7 @@ class PushshiftAPIMinimal(object):
         "Award": "t6_",
     }
 
+    # pylint: disable=too-many-arguments
     def __init__(
         self,
         max_retries=20,
@@ -84,11 +46,15 @@ class PushshiftAPIMinimal(object):
         self._detect_local_tz = detect_local_tz
 
         self.domain = domain
+        self.payload = None
 
         if rate_limit_per_minute is None:
             response = self._get(self.base_url.format(endpoint="meta"))
             rate_limit_per_minute = response["server_ratelimit_per_minute"]
-        self._rlcache = RateLimitCache(n=rate_limit_per_minute, t=60)
+
+        self._rlcache = RateLimitCache(
+            max_storage=rate_limit_per_minute, interval_secs=60
+        )
 
     @property
     def base_url(self):
@@ -122,8 +88,8 @@ class PushshiftAPIMinimal(object):
         """Mimic praw.Submission and praw.Comment API"""
         thing["created"] = self._epoch_utc_to_local(thing["created_utc"])
         thing["d_"] = copy.deepcopy(thing)
-        ThingType = namedtuple(kind, thing.keys())
-        thing = ThingType(**thing)
+        thing_type = namedtuple(kind, thing.keys())
+        thing = thing_type(**thing)
         return thing
 
     def _impose_rate_limit(self, nth_request=0):
@@ -153,7 +119,12 @@ class PushshiftAPIMinimal(object):
             if "created_utc" not in payload["filter"]:
                 payload["filter"].append("created_utc")
 
-    def _get(self, url, payload={}):
+    def _get(self, url, payload=None):
+        if not payload:
+            # See https://stackoverflow.com/q/26320899/9970453
+            # for why we don't set payload={} in the signature.
+            payload = {}
+
         i, success = 0, False
         while (not success) and (i < self.max_retries):
             self._impose_rate_limit(i)
@@ -189,82 +160,30 @@ class PushshiftAPIMinimal(object):
 
         for response in self._handle_paging(url):
             results = response["data"]
-            if len(results) == 0:
+            if not results:
                 return
             if return_batch:
                 batch = []
 
+
+            last_thing = None
             for thing in results:
                 thing = self._wrap_thing(thing, kind)
 
+                if stop_condition(thing):
+                    if return_batch:
+                        yield batch
+                    return
+
+                last_thing = thing
                 if return_batch:
                     batch.append(thing)
                 else:
                     yield thing
 
-                if stop_condition(thing):
-                    if return_batch:
-                        return batch
-                    return
-
             if return_batch:
                 yield batch
 
             # For paging.
-            self.payload["before"] = thing.created_utc
-
-
-# class PushshiftAPI(PushshiftAPIMinimal):
-# Fill out this class with more user-friendly features later
-#    pass
-
-
-class PushshiftAPI(PushshiftAPIMinimal):
-    def __init__(self, r=None, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.r = r
-        self._search_func = self._search
-        if r is not None:
-            self._search_func = self._praw_search
-
-    def search_comments(self, **kwargs):
-        return self._search_func(kind="comment", **kwargs)
-
-    def search_submissions(self, **kwargs):
-        return self._search_func(kind="submission", **kwargs)
-
-    def _get_submission_comment_ids(self, submission_id, **kwargs):
-        self.payload = copy.deepcopy(kwargs)
-        endpoint = "reddit/submission/comment_ids/{}".format(submission_id)
-        url = self.base_url.format(endpoint=endpoint)
-        return self._get(url, self.payload)["data"]
-
-    def _praw_search(self, **kwargs):
-        prefix = self._thing_prefix[kwargs["kind"].title()]
-
-        self.payload = copy.deepcopy(kwargs)
-
-        client_return_batch = kwargs.get("return_batch")
-        if client_return_batch is False:
-            self.payload.pop("return_batch")
-
-        if "filter" in kwargs:
-            self.payload.pop("filter")
-
-        gen = self._search(return_batch=True, filter="id", **self.payload)
-        using_gsci = False
-        if kwargs.get("kind") == "comment" and self.payload.get("submission_id"):
-            using_gsci = True
-            gen = [self._get_submission_comment_ids(**kwargs)]
-
-        for batch in gen:
-            if using_gsci:
-                fullnames = [prefix + base36id for base36id in batch]
-            else:
-                fullnames = [prefix + c.id for c in batch]
-            praw_batch = self.r.info(fullnames=fullnames)
-            if client_return_batch:
-                yield praw_batch
-            else:
-                for praw_thing in praw_batch:
-                    yield praw_thing
+            if last_thing:
+                self.payload["before"] = last_thing.created_utc
