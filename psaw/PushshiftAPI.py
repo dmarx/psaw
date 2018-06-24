@@ -154,11 +154,11 @@ class PushshiftAPIMinimal(object):
 
     def _handle_paging(self, url):
         limit = self.payload.get('limit', None)
-        #n = 0
+        self.payload['limit'] = self.max_results_per_request
+
         while True:
             if limit is not None:
                 if limit > self.max_results_per_request:
-                    self.payload['limit'] = self.max_results_per_request
                     limit -= self.max_results_per_request
                 else:
                     self.payload['limit'] = limit
@@ -167,7 +167,7 @@ class PushshiftAPIMinimal(object):
 
             yield self._get(url, self.payload)
 
-            if (limit is not None) & (limit == 0):
+            if (limit is not None) and (limit <= 0):
                 return
 
     def _search(self,
