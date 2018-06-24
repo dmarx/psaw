@@ -165,7 +165,6 @@ class PushshiftAPIMinimal(object):
             if return_batch:
                 batch = []
 
-
             last_thing = None
             for thing in results:
                 thing = self._wrap_thing(thing, kind)

@@ -43,7 +43,9 @@ class PushshiftAPI(PushshiftAPIMinimal):
 
         for batch in gen:
             if self.praw is None:
-                raise Exception("Can't retrieve batched responses without a PRAW instance")
+                raise Exception(
+                    "Can't retrieve batched responses without a PRAW instance"
+                )
 
             if using_gsci:
                 fullnames = [prefix + base36id for base36id in batch]
