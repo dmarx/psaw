@@ -2,8 +2,6 @@ import copy
 import time
 import json
 from collections import namedtuple
-from datetime import datetime as dt
-
 import requests
 from .rate_limit_cache import RateLimitCache
 
@@ -62,32 +60,29 @@ class PushshiftAPIMinimal(object):
 
     @property
     def utc_offset_secs(self):
-        if self._utc_offset_secs is not None:
-            return self._utc_offset_secs
-
-        if self._detect_local_tz:
-            try:
-                self._utc_offset_secs = (
-                    dt.utcnow().astimezone().utcoffset().total_seconds()
-                )
-            except ValueError:
-                self._utc_offset_secs = 0
-        else:
+        if self._utc_offset_secs is None:
             self._utc_offset_secs = 0
+
+            if self._detect_local_tz:
+                self._utc_offset_secs = time.localtime().tm_gmtoff
 
         return self._utc_offset_secs
 
-    def _limited(self, payload):
+    @classmethod
+    def _limited(cls, payload):
         """Turn off bells and whistles for special API endpoints"""
-        return any(arg in payload for arg in self._limited_args)
+        return any(arg in payload for arg in cls._limited_args)
 
     def _epoch_utc_to_local(self, epoch):
         return epoch - self.utc_offset_secs
 
     def _wrap_thing(self, thing, kind):
         """Mimic praw.Submission and praw.Comment API"""
-        thing["created"] = self._epoch_utc_to_local(thing["created_utc"])
+        # Avoid altering the given input
+        thing = copy.deepcopy(thing)
+
         thing["d_"] = copy.deepcopy(thing)
+        thing["created"] = self._epoch_utc_to_local(thing["created_utc"])
         thing_type = namedtuple(kind, thing.keys())
         thing = thing_type(**thing)
         return thing
@@ -95,11 +90,14 @@ class PushshiftAPIMinimal(object):
     def _impose_rate_limit(self, nth_request=0):
         if not hasattr(self, "_rlcache"):
             return
+
         interval = 0
         if self._rlcache.blocked:
             interval = self._rlcache.interval
+
         interval = max(interval, self.backoff * nth_request)
         interval = min(interval, self.max_sleep)
+
         if interval > 0:
             time.sleep(interval)
 

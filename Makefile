@@ -5,7 +5,7 @@ endef
 
 test:  ## Run tests
 	$(call msg,"Running tests")
-	py.test --show-capture=no psaw/
+	py.test psaw/
 
 format: ## Run Black Python formatter
 	$(call msg,"Running Black Python formatter")
