@@ -13,8 +13,12 @@ format: ## Run Black Python formatter
 	find psaw -iname "*.py" | xargs black
 
 lint:  ## Run PyLint
-	$(call msg,"Running PyLint")
-	find psaw -iname "*.py" | xargs pylint
+	$(call msg,"Running PyLint (minus TODOs)")
+	find psaw -iname "*.py" | xargs pylint --disable=fixme
+
+todos: ## Run PyLint to get a list of TODOs
+	$(call msg,"Retrieving TODO lines")
+	find psaw -iname "*.py" | xargs pylint | grep '\[W0511(fixme), \]'
 
 code-coverage: ## Run coverage.py
 	$(call msg,"Running coverage.py")
