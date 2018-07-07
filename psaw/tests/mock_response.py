@@ -6,7 +6,7 @@ class MockResponse:
     def __init__(self, status_code=200, text='{"status": "ok"}'):
         self._response = Response()
         self._response.status_code = status_code
-        self.raise_for_status = mock.MagicMock(
+        self._raise_for_status = mock.MagicMock(
             side_effect=self._response.raise_for_status
         )
 
@@ -15,3 +15,7 @@ class MockResponse:
     @property
     def status_code(self):
         return self._response.status_code
+
+    @property
+    def raise_for_status(self):
+        return self._raise_for_status

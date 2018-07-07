@@ -134,8 +134,8 @@ class PushshiftAPIMinimal(object):
             complete = response.status_code == 200
             i += 1
 
-        # We omit 429 from raise_for_status because it's a rate limit code
-        # 429 should resolve after some period of time
+        # We omit 429 from raise_for_status because it's a rate limit code.
+        # 429 should resolve after some period of time.
         if response.status_code != 429:
             # In case we hit an error that didn't resolve on retries
             response.raise_for_status()

@@ -18,26 +18,26 @@ class PushshiftAPI(PushshiftAPIMinimal):
         return self._search_func(kind="submission", **kwargs)
 
     def _get_submission_comment_ids(self, submission_id, **kwargs):
-        self.payload = copy.deepcopy(kwargs)
+        payload = copy.deepcopy(kwargs)
         endpoint = "reddit/submission/comment_ids/{}".format(submission_id)
         url = self.base_url.format(endpoint=endpoint)
-        return self._get(url, self.payload)["data"]
+        return self._get(url, payload)["data"]
 
     def _praw_search(self, **kwargs):
         prefix = self._thing_prefix[kwargs["kind"].title()]
 
-        self.payload = copy.deepcopy(kwargs)
+        payload = copy.deepcopy(kwargs)
 
         client_return_batch = kwargs.get("return_batch")
         if client_return_batch is False:
-            self.payload.pop("return_batch")
+            payload.pop("return_batch")
 
         if "filter" in kwargs:
-            self.payload.pop("filter")
+            payload.pop("filter")
 
-        gen = self._search(return_batch=True, filter="id", **self.payload)
+        gen = self._search(return_batch=True, filter="id", **payload)
         using_gsci = False
-        if kwargs.get("kind") == "comment" and self.payload.get("submission_id"):
+        if kwargs.get("kind") == "comment" and payload.get("submission_id"):
             using_gsci = True
             gen = [self._get_submission_comment_ids(**kwargs)]
 
