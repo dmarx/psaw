@@ -1,6 +1,6 @@
 from unittest import TestCase, mock
 from collections import deque
-from ..rate_limit_cache import RateLimitCache
+from psaw.rate_limit_cache import RateLimitCache
 
 
 class TestRateLimitCache(TestCase):

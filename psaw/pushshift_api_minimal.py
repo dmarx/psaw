@@ -3,7 +3,7 @@ import time
 import json
 from collections import namedtuple
 import requests
-from .rate_limit_cache import RateLimitCache
+from psaw.rate_limit_cache import RateLimitCache
 
 # pylint: disable=too-many-instance-attributes
 class PushshiftAPIMinimal(object):
@@ -30,7 +30,7 @@ class PushshiftAPIMinimal(object):
         max_results_per_request=500,
         detect_local_tz=True,
         utc_offset_secs=None,
-        domain="api",
+        domain="apiv2",
     ):
         assert max_results_per_request <= 500
         assert backoff >= 1
@@ -44,7 +44,7 @@ class PushshiftAPIMinimal(object):
         self._detect_local_tz = detect_local_tz
 
         self.domain = domain
-        self.payload = None
+        self._after_id = None
 
         if rate_limit_per_minute is None:
             response = self._get(self.base_url.format(endpoint="meta"))
@@ -103,19 +103,22 @@ class PushshiftAPIMinimal(object):
 
     def _add_nec_args(self, payload):
         """Adds 'limit' and 'created_utc' arguments to the payload as necessary."""
-        if self._limited(payload):
-            # Do nothing I guess? Not sure how paging works on this endpoint...
-            return
-        if "limit" not in payload:
-            payload["limit"] = self.max_results_per_request
-        if "filter" in payload:  # and payload.get('created_utc', None) is None:
-            if not isinstance(payload["filter"], list):
-                if isinstance(payload["filter"], str):
-                    payload["filter"] = [payload["filter"]]
-                else:
+        payload = copy.deepcopy(payload)
+
+        # Do nothing when limited I guess?
+        # Not sure how paging works on this endpoint...
+        if not self._limited(payload):
+            if "limit" not in payload:
+                payload["limit"] = self.max_results_per_request
+            if "filter" in payload:  # and payload.get('created_utc', None) is None:
+                if not isinstance(payload["filter"], list):
+                    if isinstance(payload["filter"], str):
+                        payload["filter"] = [payload["filter"]]
                     payload["filter"] = list(payload["filter"])
-            if "created_utc" not in payload["filter"]:
-                payload["filter"].append("created_utc")
+                if "created_utc" not in payload["filter"]:
+                    payload["filter"].append("created_utc")
+
+        return payload
 
     def _get(self, url, payload=None):
         if not payload:
@@ -123,47 +126,64 @@ class PushshiftAPIMinimal(object):
             # for why we don't set payload={} in the signature.
             payload = {}
 
-        i, success = 0, False
-        while (not success) and (i < self.max_retries):
+        i, complete = 0, False
+        while (not complete) and (i < self.max_retries):
             self._impose_rate_limit(i)
             response = requests.get(url, params=payload)
-            success = response.status_code == 200
+
+            complete = response.status_code == 200
             i += 1
+
+        # We omit 429 from raise_for_status because it's a rate limit code
+        # 429 should resolve after some period of time
+        if response.status_code != 429:
+            # In case we hit an error that didn't resolve on retries
+            response.raise_for_status()
+
         return json.loads(response.text)
 
-    def _handle_paging(self, url):
-        limit = self.payload.get("limit", None)
-        self.payload["limit"] = self.max_results_per_request
+    def _handle_paging(self, url, payload):
+        limit = payload.get("limit", None)
 
-        while True:
+        # Default limit value
+        payload["limit"] = self.max_results_per_request
+        # Transforms filter format
+        payload = self._add_nec_args(payload)
+
+        # If no limit is provided, the loop continues indefinitely
+        while limit is None or limit > 0:
             if limit is not None:
                 if limit > self.max_results_per_request:
                     limit -= self.max_results_per_request
                 else:
-                    self.payload["limit"] = limit
+                    payload["limit"] = limit
                     limit = 0
-            self._add_nec_args(self.payload)
 
-            yield self._get(url, self.payload)
+            if self._after_id is not None:
+                payload["after_id"] = self._after_id
 
-            if (limit is not None) and (limit <= 0):
-                return
+            results = self._get(url, payload)
+
+            # Set the latest retrieved id, if it exists
+            if "data" in results and results["data"]:
+                self._after_id = results["data"][-1].get("id", self._after_id)
+
+            yield results
 
     def _search(
         self, kind, stop_condition=lambda x: False, return_batch=False, **kwargs
     ):
-        self.payload = copy.deepcopy(kwargs)
+        payload = copy.deepcopy(kwargs)
         endpoint = "reddit/{}/search".format(kind)
         url = self.base_url.format(endpoint=endpoint)
 
-        for response in self._handle_paging(url):
+        for response in self._handle_paging(url, payload):
             results = response["data"]
             if not results:
                 return
             if return_batch:
                 batch = []
 
-            last_thing = None
             for thing in results:
                 thing = self._wrap_thing(thing, kind)
 
@@ -172,7 +192,6 @@ class PushshiftAPIMinimal(object):
                         yield batch
                     return
 
-                last_thing = thing
                 if return_batch:
                     batch.append(thing)
                 else:
@@ -180,7 +199,3 @@ class PushshiftAPIMinimal(object):
 
             if return_batch:
                 yield batch
-
-            # For paging.
-            if last_thing:
-                self.payload["before"] = last_thing.created_utc

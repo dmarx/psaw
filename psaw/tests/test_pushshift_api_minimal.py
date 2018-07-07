@@ -1,9 +1,12 @@
 from unittest import mock, TestCase
 import os
 import time
+import json
 from datetime import datetime as dt
+from requests.exceptions import HTTPError
 import pytz
-from ..pushshift_api_minimal import PushshiftAPIMinimal
+from psaw.pushshift_api_minimal import PushshiftAPIMinimal
+from psaw.tests.mock_response import MockResponse
 
 
 class TestPushshiftAPIMinimal(TestCase):
@@ -240,12 +243,163 @@ class TestPushshiftAPIMinimal(TestCase):
         mock_sleep.assert_called_with(6 * backoff)
 
     def test_add_nec_args(self):
-        # TODO
-        pass
+        max_results_per_request = 127
+        api = PushshiftAPIMinimal(max_results_per_request=max_results_per_request)
 
-    def test_get(self):
-        # TODO
-        pass
+        expected_payload = {key: True for key in PushshiftAPIMinimal._limited_args}
+
+        # Ensure limited calls aren't altered
+        self.assertDictEqual(
+            expected_payload,
+            api._add_nec_args({key: True for key in PushshiftAPIMinimal._limited_args}),
+        )
+
+        # Ensure limit is added as expected
+        self.assertDictEqual(
+            {"arbitrary": "value", "limit": max_results_per_request},
+            api._add_nec_args({"arbitrary": "value"}),
+        )
+
+        # Ensure created_utc is appended to filter
+        self.assertDictEqual(
+            {
+                "more_arbitrary": "more_value",
+                "limit": max_results_per_request,
+                "filter": ["created_utc"],
+            },
+            api._add_nec_args({"more_arbitrary": "more_value", "filter": []}),
+        )
+
+        # Ensure string filter turned to list
+        self.assertDictEqual(
+            {
+                "more_arbitrary": "more_value",
+                "limit": max_results_per_request,
+                "filter": ["some_string", "created_utc"],
+            },
+            api._add_nec_args(
+                {"more_arbitrary": "more_value", "filter": "some_string"}
+            ),
+        )
+
+        # Ensure iterable-but-not-list filter turned to list
+        self.assertDictEqual(
+            {
+                "more_arbitrary": "more_value",
+                "limit": max_results_per_request,
+                "filter": [0, 1, 2, "created_utc"],
+            },
+            api._add_nec_args(
+                {"more_arbitrary": "more_value", "filter": set(x for x in range(0, 3))}
+            ),
+        )
+
+        # Ensure "created_utc" string filter turned to list
+        self.assertDictEqual(
+            {
+                "more_arbitrary": "more_value",
+                "limit": max_results_per_request,
+                "filter": ["created_utc"],
+            },
+            api._add_nec_args(
+                {"more_arbitrary": "more_value", "filter": "created_utc"}
+            ),
+        )
+
+    @mock.patch("psaw.pushshift_api_minimal.PushshiftAPIMinimal._impose_rate_limit")
+    @mock.patch("psaw.pushshift_api_minimal.requests.get")
+    def test_get(self, mock_get, mock_rate_limit):
+        max_retries = 7
+        expected_result = "test_text"
+        test_url = "example.com/route"
+
+        api = PushshiftAPIMinimal(max_retries=max_retries, rate_limit_per_minute=60)
+
+        mock_get.return_value = MockResponse(
+            status_code=200, text=json.dumps(expected_result)
+        )
+
+        self.assertEqual(expected_result, api._get(test_url))
+
+        # Ensure the correct count of retries triggered
+        mock_get.assert_called_with(test_url, params={})
+        self.assertEqual(1, mock_get.call_count)
+
+        # Ensure the rate limit was applied
+        self.assertEqual(1, mock_rate_limit.call_count)
+        mock_rate_limit.assert_has_calls([mock.call(0)])
+
+        mock_get.return_value.raise_for_status.assert_called_once()
+
+    @mock.patch("psaw.pushshift_api_minimal.PushshiftAPIMinimal._impose_rate_limit")
+    @mock.patch("psaw.pushshift_api_minimal.requests.get")
+    def test_get_429(self, mock_get, mock_rate_limit):
+        max_retries = 7
+        expected_result = "test_text"
+        test_url = "example.com/route"
+
+        api = PushshiftAPIMinimal(max_retries=max_retries, rate_limit_per_minute=60)
+
+        mock_get.return_value = MockResponse(
+            status_code=429, text=json.dumps(expected_result)
+        )
+
+        self.assertEqual(expected_result, api._get(test_url))
+
+        # Ensure the correct count of retries triggered
+        mock_get.assert_called_with(test_url, params={})
+        self.assertEqual(max_retries, mock_get.call_count)
+
+        # Ensure the rate limit was applied
+        self.assertEqual(max_retries, mock_rate_limit.call_count)
+        mock_rate_limit.assert_has_calls(
+            [mock.call(idx) for idx in range(0, max_retries)]
+        )
+
+        # This is the key difference with code 429
+        mock_get.return_value.raise_for_status.assert_not_called()
+
+    @mock.patch("psaw.pushshift_api_minimal.PushshiftAPIMinimal._impose_rate_limit")
+    @mock.patch("psaw.pushshift_api_minimal.requests.get")
+    def test_get_raise_for_status(self, mock_get, mock_rate_limit):
+        max_retries = 7
+        expected_result = "test_text"
+        test_url = "example.com/route"
+
+        api = PushshiftAPIMinimal(max_retries=max_retries, rate_limit_per_minute=60)
+
+        # Test a subset of codes that should cause an outright failure
+        for idx, status_code in enumerate(
+            [400, 401, 403, 404, 405, 500, 502, 503, 504]
+        ):
+            mock_get.return_value = MockResponse(
+                status_code=status_code, text=json.dumps(expected_result)
+            )
+
+            try:
+                api._get(test_url)
+                self.fail("call failed to trigger expected exception")
+            except HTTPError as exc:
+                self.assertIn(
+                    "{} {} Error".format(
+                        status_code, "Server" if status_code >= 500 else "Client"
+                    ),
+                    str(exc),
+                )
+
+            expected_calls = max_retries * (idx + 1)
+
+            # Ensure the correct count of retries triggered
+            mock_get.assert_called_with(test_url, params={})
+            self.assertEqual(expected_calls, mock_get.call_count)
+
+            # Ensure the rate limit was applied
+            self.assertEqual(expected_calls, mock_rate_limit.call_count)
+            mock_rate_limit.assert_has_calls(
+                [mock.call(idx) for idx in range(0, max_retries)]
+            )
+
+            mock_get.return_value.raise_for_status.assert_called_once()
 
     def test_handle_paging(self):
         # TODO
