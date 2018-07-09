@@ -8,9 +8,9 @@ import pytz
 from psaw.pushshift_api_minimal import PushshiftAPIMinimal
 from psaw.tests.mock_response import MockResponse
 
-
+# pylint: disable=too-many-public-methods
 class TestPushshiftAPIMinimal(TestCase):
-    pushshift_args = [
+    _pushshift_args = [
         "sort",
         "sort_type",
         "after",
@@ -98,6 +98,36 @@ class TestPushshiftAPIMinimal(TestCase):
         "show_media_preview",
     ]
 
+    _search_test_data = (
+        {
+            "data": [
+                {"created_utc": 1530046703, "id": "e1ccvn7", "score": 1},
+                {"created_utc": 1530047319, "id": "e1ccvn8", "score": 2},
+                {"created_utc": 1530047619, "id": "e1ccvn9", "score": -3},
+                {"created_utc": 1530047719, "id": "e1ccvna", "score": 5},
+                {"created_utc": 1530047819, "id": "e1ccvnb", "score": 8},
+            ]
+        },
+        {
+            "data": [
+                {"created_utc": 1530048703, "id": "e1cdvn7", "score": -1},
+                {"created_utc": 1530049319, "id": "e1cdvn8", "score": -2},
+                {"created_utc": 1530049619, "id": "e1cdvn9", "score": 3},
+                {"created_utc": 1530049719, "id": "e1cdvna", "score": -5},
+                {"created_utc": 1530049819, "id": "e1cdvnb", "score": -8},
+            ]
+        },
+        {
+            "data": [
+                {"created_utc": 1530148703, "id": "e1cdvn7", "score": -1},
+                {"created_utc": 1530149319, "id": "e1cdvn8", "score": -2},
+                {"created_utc": 1530149619, "id": "e1cdvn9", "score": 3},
+                {"created_utc": 1530149719, "id": "e1cdvna", "score": -5},
+                {"created_utc": 1530149819, "id": "e1cdvnb", "score": -8},
+            ]
+        },
+    )
+
     # pylint: disable=protected-access
     def test_init(self):
         api = PushshiftAPIMinimal(
@@ -150,7 +180,7 @@ class TestPushshiftAPIMinimal(TestCase):
     def test_limited(self):
         # Test all of the arguments listed at
         # https://pushshift.io/api-parameters/
-        for arg in self.pushshift_args:
+        for arg in self._pushshift_args:
             self.assertFalse(PushshiftAPIMinimal._limited({arg: True}))
 
         # Test the limited arguments
@@ -452,11 +482,11 @@ class TestPushshiftAPIMinimal(TestCase):
 
         for payload in valid_payloads:
             # Everything should page fine
-            api.raise_for_unpageable(payload)
+            api._raise_for_unpageable(payload)
 
         for payload in invalid_payloads:
             try:
-                api.raise_for_unpageable(payload)
+                api._raise_for_unpageable(payload)
                 self.fail("Expected exception failed to trigger")
             except NotImplementedError as exc:
                 msg = str(exc)
@@ -591,37 +621,7 @@ class TestPushshiftAPIMinimal(TestCase):
 
     @mock.patch("psaw.pushshift_api_minimal.PushshiftAPIMinimal._handle_paging")
     def test_search(self, mock_paging):
-        test_data = (
-            {
-                "data": [
-                    {"created_utc": 1530046703, "id": "e1ccvn7", "score": 1},
-                    {"created_utc": 1530047319, "id": "e1ccvn8", "score": 2},
-                    {"created_utc": 1530047619, "id": "e1ccvn9", "score": -3},
-                    {"created_utc": 1530047719, "id": "e1ccvna", "score": 5},
-                    {"created_utc": 1530047819, "id": "e1ccvnb", "score": 8},
-                ]
-            },
-            {
-                "data": [
-                    {"created_utc": 1530048703, "id": "e1cdvn7", "score": -1},
-                    {"created_utc": 1530049319, "id": "e1cdvn8", "score": -2},
-                    {"created_utc": 1530049619, "id": "e1cdvn9", "score": 3},
-                    {"created_utc": 1530049719, "id": "e1cdvna", "score": -5},
-                    {"created_utc": 1530049819, "id": "e1cdvnb", "score": -8},
-                ]
-            },
-            {
-                "data": [
-                    {"created_utc": 1530148703, "id": "e1cdvn7", "score": -1},
-                    {"created_utc": 1530149319, "id": "e1cdvn8", "score": -2},
-                    {"created_utc": 1530149619, "id": "e1cdvn9", "score": 3},
-                    {"created_utc": 1530149719, "id": "e1cdvna", "score": -5},
-                    {"created_utc": 1530149819, "id": "e1cdvnb", "score": -8},
-                ]
-            },
-        )
-
-        mock_paging.return_value = test_data
+        mock_paging.return_value = self._search_test_data
 
         kind = "TestKind"
         expected_url = "https://test-domain.pushshift.io/reddit/{}/search".format(kind)
@@ -631,7 +631,7 @@ class TestPushshiftAPIMinimal(TestCase):
 
         result_gen = api._search(kind)
 
-        for data_grp in test_data:
+        for data_grp in self._search_test_data:
             for test_item in data_grp["data"]:
                 actual_item = next(result_gen)
 
@@ -643,3 +643,128 @@ class TestPushshiftAPIMinimal(TestCase):
                     self.assertEqual(val, getattr(actual_item, key))
 
         mock_paging.assert_called_once_with(expected_url, {})
+
+        # Make sure everything is complete
+        try:
+            next(result_gen)
+            self.fail("Expected StopIteration")
+        except StopIteration:
+            pass
+
+    @mock.patch("psaw.pushshift_api_minimal.PushshiftAPIMinimal._handle_paging")
+    def test_search_batch(self, mock_paging):
+        mock_paging.return_value = self._search_test_data
+
+        kind = "TestKind"
+        expected_url = "https://test-domain.pushshift.io/reddit/{}/search".format(kind)
+        api = PushshiftAPIMinimal(
+            domain="test-domain", rate_limit_per_minute=77, detect_local_tz=False
+        )
+
+        result_gen = api._search(kind, return_batch=True)
+
+        for data_grp in self._search_test_data:
+            expected_batch = data_grp["data"]
+            actual_batch = next(result_gen)
+
+            self.assertEqual(len(expected_batch), len(actual_batch))
+
+            for idx, test_item in enumerate(expected_batch):
+                actual_item = actual_batch[idx]
+
+                self.assertIn(kind, str(actual_item))
+                self.assertEqual(test_item["created_utc"], actual_item.created)
+                self.assertDictEqual(test_item, actual_item.d_)
+
+                for key, val in test_item.items():
+                    self.assertEqual(val, getattr(actual_item, key))
+
+        mock_paging.assert_called_once_with(expected_url, {})
+
+        # Make sure everything is complete
+        try:
+            next(result_gen)
+            self.fail("Expected StopIteration")
+        except StopIteration:
+            pass
+
+    @mock.patch("psaw.pushshift_api_minimal.PushshiftAPIMinimal._handle_paging")
+    def test_search_stop_condition(self, mock_paging):
+        mock_paging.return_value = self._search_test_data
+
+        kind = "TestKind"
+        expected_url = "https://test-domain.pushshift.io/reddit/{}/search".format(kind)
+        api = PushshiftAPIMinimal(
+            domain="test-domain", rate_limit_per_minute=77, detect_local_tz=False
+        )
+
+        result_gen = api._search(kind, stop_condition=lambda x: x.created > 1530049619)
+
+        for data_grp in self._search_test_data:
+            for test_item in data_grp["data"]:
+                if test_item["created_utc"] > 1530049619:
+                    break
+
+                actual_item = next(result_gen)
+
+                self.assertIn(kind, str(actual_item))
+                self.assertEqual(test_item["created_utc"], actual_item.created)
+                self.assertDictEqual(test_item, actual_item.d_)
+
+                for key, val in test_item.items():
+                    self.assertEqual(val, getattr(actual_item, key))
+
+        mock_paging.assert_called_once_with(expected_url, {})
+
+        # Make sure everything is complete
+        try:
+            next(result_gen)
+            self.fail("Expected StopIteration")
+        except StopIteration:
+            pass
+
+    @mock.patch("psaw.pushshift_api_minimal.PushshiftAPIMinimal._handle_paging")
+    def test_search_stop_cond_batch(self, mock_paging):
+        mock_paging.return_value = self._search_test_data
+
+        kind = "TestKind"
+        expected_url = "https://test-domain.pushshift.io/reddit/{}/search".format(kind)
+        api = PushshiftAPIMinimal(
+            domain="test-domain", rate_limit_per_minute=77, detect_local_tz=False
+        )
+
+        result_gen = api._search(
+            kind, stop_condition=lambda x: x.created > 1530049619, return_batch=True
+        )
+
+        for data_grp in self._search_test_data:
+            # Transform our source data to match what we expect with the stop condition
+            expected_batch = list(
+                filter(lambda x: x["created_utc"] <= 1530049619, data_grp["data"])
+            )
+            actual_batch = next(result_gen)
+
+            self.assertEqual(len(expected_batch), len(actual_batch))
+
+            for idx, test_item in enumerate(expected_batch):
+                actual_item = actual_batch[idx]
+
+                self.assertIn(kind, str(actual_item))
+                self.assertEqual(test_item["created_utc"], actual_item.created)
+                self.assertDictEqual(test_item, actual_item.d_)
+
+                for key, val in test_item.items():
+                    self.assertEqual(val, getattr(actual_item, key))
+
+            # Indicates that we hit the stop condition
+            if len(expected_batch) < len(data_grp["data"]):
+                break
+
+        mock_paging.assert_called_once_with(expected_url, {})
+
+        # Make sure everything is complete
+        try:
+            next(result_gen)
+            self.fail("Expected StopIteration")
+        except StopIteration:
+            pass

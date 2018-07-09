@@ -10,6 +10,8 @@ class PushshiftAPIMinimal(object):
     # base_url = {'search':'https://api.pushshift.io/reddit/{}/search/',
     #            'meta':'https://api.pushshift.io/meta/'}
     _base_url = "https://{domain}.pushshift.io/{{endpoint}}"
+
+    # TODO evaluate which params work with aggregates
     _limited_args = "aggs"
     _thing_prefix = {
         "Comment": "t1_",
@@ -143,7 +145,7 @@ class PushshiftAPIMinimal(object):
 
         return json.loads(response.text)
 
-    def raise_for_unpageable(self, payload):
+    def _raise_for_unpageable(self, payload):
         sort_type = payload.get("sort_type", None)
 
         # Currently, the only way to paginate results is by date
@@ -186,7 +188,7 @@ class PushshiftAPIMinimal(object):
     def _handle_paging(self, url, payload):
 
         # Raise an exception if the request will not return all data
-        self.raise_for_unpageable(payload)
+        self._raise_for_unpageable(payload)
 
         # Original limit
         limit = payload.get("limit", None)
@@ -239,9 +241,8 @@ class PushshiftAPIMinimal(object):
             results = response["data"]
             if not results:
                 return
-            if return_batch:
-                batch = []
 
+            batch = []
             for thing in results:
                 thing = self._wrap_thing(thing, kind)
 
