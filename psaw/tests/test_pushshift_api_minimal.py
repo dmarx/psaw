@@ -128,19 +128,19 @@ class TestPushshiftAPIMinimal(TestCase):
         },
     )
 
-    # pylint: disable=protected-access
-    def test_init(self):
-        api = PushshiftAPIMinimal(
-            max_retries=27,
-            max_sleep=2390,
-            backoff=7,
-            rate_limit_per_minute=123,
-            max_results_per_request=500,
-            detect_local_tz=False,
-            utc_offset_secs=11,
-            domain="testapi",
-        )
+    _base_init_kwargs = {
+        "max_retries": 27,
+        "max_sleep": 2390,
+        "backoff": 7,
+        "rate_limit_per_minute": 123,
+        "max_results_per_request": 500,
+        "detect_local_tz": False,
+        "utc_offset_secs": 11,
+        "domain": "testapi",
+    }
 
+    # pylint: disable=protected-access
+    def _test_base_init(self, api):
         self.assertEqual(27, api.max_retries)
         self.assertEqual(2390, api.max_sleep)
         self.assertEqual(7, api.backoff)
@@ -151,6 +151,10 @@ class TestPushshiftAPIMinimal(TestCase):
         self.assertEqual(11, api._utc_offset_secs)
 
         self.assertEqual(123, api._rlcache.max_storage)
+
+    def test_init(self):
+        api = PushshiftAPIMinimal(**self._base_init_kwargs)
+        self._test_base_init(api)
 
     @mock.patch("psaw.pushshift_api_minimal.PushshiftAPIMinimal._get")
     def test_init_none_rate_limit(self, mock_get):
