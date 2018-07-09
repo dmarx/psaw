@@ -51,6 +51,30 @@ class TestPushshiftAPI(TestPushshiftAPIMinimal):
 
         mock_search.assert_called_once_with(kind="submission", **kwargs)
 
+    @mock.patch("psaw.pushshift_api.PushshiftAPI._get")
+    def test_get_submission_comment_ids(self, mock_get):
+        kwargs = {
+            "limit": 10,
+            "sort": "desc",
+            "sort_type": "score",
+            "filter": "created_utc",
+            "q": "test query",
+        }
+        submission_id = "8irmhj"
+        expected_result = ["dyu1k9y", "dyu1mg7"]
+        mock_get.return_value = {"data": expected_result}
+        expected_url = "https://testapi.pushshift.io/reddit/submission/comment_ids/{}".format(
+            submission_id
+        )
+
+        api = PushshiftAPI(**self._base_init_kwargs)
+
+        self.assertEqual(
+            expected_result, api._get_submission_comment_ids(submission_id, **kwargs)
+        )
+
+        mock_get.assert_called_once_with(expected_url, kwargs)
+
     def test_praw_search(self):
         # TODO
         pass

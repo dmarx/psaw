@@ -25,7 +25,6 @@ class PushshiftAPI(PushshiftAPIMinimal):
 
     def _praw_search(self, **kwargs):
         prefix = self._thing_prefix[kwargs["kind"].title()]
-
         payload = copy.deepcopy(kwargs)
 
         client_return_batch = kwargs.get("return_batch")
