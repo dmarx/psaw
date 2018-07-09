@@ -19,6 +19,7 @@ class PushshiftAPIMinimal(object):
         "Subreddit": "t5_",
         "Award": "t6_",
     }
+    _page_error_msg = "Paging is only supported for sort_type == created_utc."
 
     # pylint: disable=too-many-arguments
     def __init__(
@@ -44,7 +45,7 @@ class PushshiftAPIMinimal(object):
         self._detect_local_tz = detect_local_tz
 
         self.domain = domain
-        self._after_id = None
+        self._last_timestamp = None
 
         if rate_limit_per_minute is None:
             response = self._get(self.base_url.format(endpoint="meta"))
@@ -142,37 +143,94 @@ class PushshiftAPIMinimal(object):
 
         return json.loads(response.text)
 
+    def raise_for_unpageable(self, payload):
+        sort_type = payload.get("sort_type", None)
+
+        # Currently, the only way to paginate results is by date
+        if sort_type and sort_type != "created_utc":
+            limit = payload.get("limit", None)
+
+            if not limit:
+                raise NotImplementedError(
+                    "{}\n{}".format(
+                        self._page_error_msg,
+                        "You must provide a limit to run this query.",
+                    )
+                )
+            if limit > self.max_results_per_request:
+                raise NotImplementedError(
+                    "{}\n{}".format(
+                        self._page_error_msg,
+                        "Non-default sort queries require limit <= max_results_per_request",
+                    )
+                )
+
+    def _apply_timestamp(self, payload):
+        # NOTE See the Pushshift maintainer's comment here https://bit.ly/2NyhPUN
+        # He asserts that timestamp has been "fixed" so that a call will always
+        # return everything within an epoch second, so we don't have to subtract a
+        # second to get everything.
+        payload = copy.deepcopy(payload)
+
+        if not self._last_timestamp:
+            return payload
+
+        sort = payload.get("sort", "desc")
+        if sort == "desc":
+            payload["before"] = self._last_timestamp
+        else:
+            payload["after"] = self._last_timestamp
+
+        return payload
+
     def _handle_paging(self, url, payload):
+
+        # Raise an exception if the request will not return all data
+        self.raise_for_unpageable(payload)
+
+        # Original limit
         limit = payload.get("limit", None)
 
-        # Default limit value
+        # Default limit
         payload["limit"] = self.max_results_per_request
+
         # Transforms filter format
         payload = self._add_nec_args(payload)
 
         # If no limit is provided, the loop continues indefinitely
         while limit is None or limit > 0:
             if limit is not None:
+                # NOTE limit cannot be relied on to strictly limit the result count.
+                # This comment (https://bit.ly/2NyhPUN) indicates that a batch will
+                # contain more than the limit if the final result has multiple comments
+                # with the same utc_created time.
                 if limit > self.max_results_per_request:
                     limit -= self.max_results_per_request
                 else:
                     payload["limit"] = limit
                     limit = 0
 
-            if self._after_id is not None:
-                payload["after_id"] = self._after_id
-
+            payload = self._apply_timestamp(payload)
             results = self._get(url, payload)
 
-            # Set the latest retrieved id, if it exists
+            # Set the latest retrieved timestamp, if it exists
             if "data" in results and results["data"]:
-                self._after_id = results["data"][-1].get("id", self._after_id)
+                # Track backwards through the data until we hit a timestamp
+                for idx in range(len(results["data"]) - 1, -1, -1):
+                    timestamp = results["data"][idx].get("created_utc", None)
+
+                    if timestamp:
+                        self._last_timestamp = timestamp
+                        break
 
             yield results
 
     def _search(
         self, kind, stop_condition=lambda x: False, return_batch=False, **kwargs
     ):
+        # Reset timestamp data with every request
+        self._last_timestamp = None
+
         payload = copy.deepcopy(kwargs)
         endpoint = "reddit/{}/search".format(kind)
         url = self.base_url.format(endpoint=endpoint)

@@ -401,10 +401,245 @@ class TestPushshiftAPIMinimal(TestCase):
 
             mock_get.return_value.raise_for_status.assert_called_once()
 
-    def test_handle_paging(self):
-        # TODO
-        pass
+    def test_apply_timestamp(self):
+        api = PushshiftAPIMinimal()
 
-    def test_search(self):
-        # TODO
-        pass
+        api._last_timestamp = None
+        self.assertDictEqual(
+            {"rand_field": "rand_val"}, api._apply_timestamp({"rand_field": "rand_val"})
+        )
+
+        api._last_timestamp = 12307501
+        self.assertDictEqual(
+            {"rand_field": "rand_val", "before": 12307501},
+            api._apply_timestamp({"rand_field": "rand_val"}),
+        )
+
+        self.assertDictEqual(
+            {"rand_field": "rand_val", "sort": "desc", "before": 12307501},
+            api._apply_timestamp({"rand_field": "rand_val", "sort": "desc"}),
+        )
+
+        self.assertDictEqual(
+            {"rand_field": "rand_val", "sort": "asc", "after": 12307501},
+            api._apply_timestamp({"rand_field": "rand_val", "sort": "asc"}),
+        )
+
+    def test_raise_for_unpageable(self):
+        max_results_per_request = 10
+        valid_payloads = [
+            {},
+            {"sort_type": "created_utc"},
+            {"sort_type": "created_utc", "sort": "desc"},
+            {"sort_type": "created_utc", "sort": "asc"},
+            {"sort_type": "score", "sort": "desc", "limit": 2},
+            {"sort_type": "num_comments", "sort": "asc", "limit": 5},
+            {"sort_type": "whatever", "sort": "desc", "limit": 8},
+            {"sort_type": "seriously_whatever", "sort": "desc", "limit": 10},
+        ]
+
+        invalid_payloads = [
+            {"sort_type": "score"},
+            {"sort_type": "num_comments", "sort": "desc"},
+            {"sort_type": "whatever", "sort": "asc"},
+            {"sort_type": "score", "sort": "desc", "limit": 11},
+            {"sort_type": "num_comments", "sort": "asc", "limit": 15},
+            {"sort_type": "whatever", "sort": "desc", "limit": 18},
+            {"sort_type": "seriously_whatever", "sort": "desc", "limit": 110},
+        ]
+
+        api = PushshiftAPIMinimal(max_results_per_request=max_results_per_request)
+
+        for payload in valid_payloads:
+            # Everything should page fine
+            api.raise_for_unpageable(payload)
+
+        for payload in invalid_payloads:
+            try:
+                api.raise_for_unpageable(payload)
+                self.fail("Expected exception failed to trigger")
+            except NotImplementedError as exc:
+                msg = str(exc)
+                # General error
+                self.assertIn(PushshiftAPIMinimal._page_error_msg, msg)
+
+                # Error specifics
+                if "limit" in payload:
+                    self.assertIn(
+                        "queries require limit <= max_results_per_request", msg
+                    )
+                else:
+                    self.assertIn("must provide a limit", msg)
+
+    @mock.patch("psaw.pushshift_api_minimal.PushshiftAPIMinimal._get")
+    def test_handle_paging_high_limit(self, mock_get):
+        test_url = "example.com/route"
+        test_data = [
+            {
+                "data": [
+                    {"created_utc": 1530046703, "id": "e1ccvn7", "score": 1},
+                    {"created_utc": 1530047319, "id": "e1ccvn8", "score": 2},
+                    {"created_utc": 1530047619, "id": "e1ccvn9", "score": -3},
+                    {"created_utc": 1530047719, "id": "e1ccvna", "score": 5},
+                    {"created_utc": 1530047819, "id": "e1ccvnb", "score": 8},
+                ]
+            },
+            {
+                "data": [
+                    {"created_utc": 1530048703, "id": "e1cdvn7", "score": -1},
+                    {"created_utc": 1530049319, "id": "e1cdvn8", "score": -2},
+                    {"created_utc": 1530049619, "id": "e1cdvn9", "score": 3},
+                    {"created_utc": 1530049719, "id": "e1cdvna", "score": -5},
+                    {"created_utc": 1530049819, "id": "e1cdvnb", "score": -8},
+                ]
+            },
+            {
+                "data": [
+                    {"created_utc": 1530148703, "id": "e1cdvn7", "score": -1},
+                    {"created_utc": 1530149319, "id": "e1cdvn8", "score": -2},
+                    {"created_utc": 1530149619, "id": "e1cdvn9", "score": 3},
+                    {"created_utc": 1530149719, "id": "e1cdvna", "score": -5},
+                    {"created_utc": 1530149819, "id": "e1cdvnb", "score": -8},
+                ]
+            },
+        ]
+        mock_get.side_effect = test_data
+
+        api = PushshiftAPIMinimal(max_results_per_request=10, rate_limit_per_minute=60)
+        results = api._handle_paging(test_url, {"limit": 25})
+
+        self.assertEqual(test_data[0], next(results))
+        self.assertEqual(1530047819, api._last_timestamp)
+        self.assertEqual(1, mock_get.call_count)
+        mock_get.assert_called_with(test_url, {"limit": 10})
+
+        self.assertEqual(test_data[1], next(results))
+        self.assertEqual(1530049819, api._last_timestamp)
+        self.assertEqual(2, mock_get.call_count)
+        mock_get.assert_called_with(test_url, {"limit": 10, "before": 1530047819})
+
+        self.assertEqual(test_data[2], next(results))
+        self.assertEqual(1530149819, api._last_timestamp)
+        self.assertEqual(3, mock_get.call_count)
+        mock_get.assert_called_with(test_url, {"limit": 5, "before": 1530049819})
+
+        try:
+            next(results)
+            self.fail("Expected StopIteration")
+        except StopIteration:
+            pass
+
+    @mock.patch("psaw.pushshift_api_minimal.PushshiftAPIMinimal._get")
+    def test_handle_paging_low_limit(self, mock_get):
+        expected_last_timestamp = 1530047819
+        test_url = "example.com/route"
+        mock_get.return_value = {
+            "data": [
+                {"created_utc": 1530046703, "id": "e1ccvn7", "score": 1},
+                {"created_utc": 1530047319, "id": "e1ccvn8", "score": 2},
+                {"created_utc": 1530047619, "id": "e1ccvn9", "score": -3},
+                {"created_utc": 1530047719, "id": "e1ccvna", "score": 5},
+                {"created_utc": expected_last_timestamp, "id": "e1ccvnb", "score": 8},
+            ]
+        }
+
+        api = PushshiftAPIMinimal(max_results_per_request=10, rate_limit_per_minute=60)
+        results = api._handle_paging(test_url, {"limit": 5})
+
+        self.assertEqual(mock_get.return_value, next(results))
+        self.assertEqual(expected_last_timestamp, api._last_timestamp)
+        mock_get.assert_called_once_with(test_url, {"limit": 5})
+
+        try:
+            next(results)
+            self.fail("Expected StopIteration")
+        except StopIteration:
+            pass
+
+    @mock.patch("psaw.pushshift_api_minimal.PushshiftAPIMinimal._get")
+    def test_handle_paging_no_limit(self, mock_get):
+        expected_last_timestamp = 1530047819
+        test_url = "example.com/route"
+        mock_get.return_value = {
+            "data": [
+                {"created_utc": 1530046703, "id": "e1ccvn7", "score": 1},
+                {"created_utc": 1530047319, "id": "e1ccvn8", "score": 2},
+                {"created_utc": 1530047619, "id": "e1ccvn9", "score": -3},
+                {"created_utc": 1530047719, "id": "e1ccvna", "score": 5},
+                {"created_utc": expected_last_timestamp, "id": "e1ccvnb", "score": 8},
+            ]
+        }
+
+        api = PushshiftAPIMinimal(max_results_per_request=10, rate_limit_per_minute=60)
+        results = api._handle_paging(test_url, {})
+
+        # Run the first call outside of the loop.
+        # The call values will vary slightly after the first call.
+        self.assertEqual(mock_get.return_value, next(results))
+        self.assertEqual(expected_last_timestamp, api._last_timestamp)
+        mock_get.assert_called_once()
+        mock_get.assert_called_with(test_url, {"limit": 10})
+
+        # This could go on forever. We stop after 15 calls.
+        for call_count in range(2, 15):
+            self.assertEqual(mock_get.return_value, next(results))
+            self.assertEqual(call_count, mock_get.call_count)
+            self.assertEqual(expected_last_timestamp, api._last_timestamp)
+            mock_get.assert_called_with(
+                test_url, {"limit": 10, "before": expected_last_timestamp}
+            )
+
+    @mock.patch("psaw.pushshift_api_minimal.PushshiftAPIMinimal._handle_paging")
+    def test_search(self, mock_paging):
+        test_data = (
+            {
+                "data": [
+                    {"created_utc": 1530046703, "id": "e1ccvn7", "score": 1},
+                    {"created_utc": 1530047319, "id": "e1ccvn8", "score": 2},
+                    {"created_utc": 1530047619, "id": "e1ccvn9", "score": -3},
+                    {"created_utc": 1530047719, "id": "e1ccvna", "score": 5},
+                    {"created_utc": 1530047819, "id": "e1ccvnb", "score": 8},
+                ]
+            },
+            {
+                "data": [
+                    {"created_utc": 1530048703, "id": "e1cdvn7", "score": -1},
+                    {"created_utc": 1530049319, "id": "e1cdvn8", "score": -2},
+                    {"created_utc": 1530049619, "id": "e1cdvn9", "score": 3},
+                    {"created_utc": 1530049719, "id": "e1cdvna", "score": -5},
+                    {"created_utc": 1530049819, "id": "e1cdvnb", "score": -8},
+                ]
+            },
+            {
+                "data": [
+                    {"created_utc": 1530148703, "id": "e1cdvn7", "score": -1},
+                    {"created_utc": 1530149319, "id": "e1cdvn8", "score": -2},
+                    {"created_utc": 1530149619, "id": "e1cdvn9", "score": 3},
+                    {"created_utc": 1530149719, "id": "e1cdvna", "score": -5},
+                    {"created_utc": 1530149819, "id": "e1cdvnb", "score": -8},
+                ]
+            },
+        )
+
+        mock_paging.return_value = test_data
+
+        kind = "TestKind"
+        expected_url = "https://test-domain.pushshift.io/reddit/{}/search".format(kind)
+        api = PushshiftAPIMinimal(
+            domain="test-domain", rate_limit_per_minute=77, detect_local_tz=False
+        )
+
+        result_gen = api._search(kind)
+
+        for data_grp in test_data:
+            for test_item in data_grp["data"]:
+                actual_item = next(result_gen)
+
+                self.assertIn(kind, str(actual_item))
+                self.assertEqual(test_item["created_utc"], actual_item.created)
+                self.assertDictEqual(test_item, actual_item.d_)
+
+                for key, val in test_item.items():
+                    self.assertEqual(val, getattr(actual_item, key))
+
+        mock_paging.assert_called_once_with(expected_url, {})
