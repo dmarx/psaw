@@ -9,7 +9,7 @@ with open(path.join(HERE, "README.rst"), encoding="utf-8") as fp:
     README = fp.read()
 
 with open(path.join(HERE, PACKAGE_NAME, "__init__.py"), encoding="utf-8") as fp:
-    VERSION = re.search("__version__ = '([^']+)'", fp.read()).group(1)
+    VERSION = re.search("__version__ = \"([^\"]+)\"", fp.read()).group(1)
 
 setup(
     name=PACKAGE_NAME,
