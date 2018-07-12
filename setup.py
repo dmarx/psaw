@@ -2,24 +2,25 @@ from os import path
 import re
 from setuptools import setup
 
-PACKAGE_NAME = "psaw"
+PACKAGE_NAME = "pushshift.py"
+PACKAGE_PATH = "psaw"
 HERE = path.abspath(path.dirname(__file__))
 
 with open(path.join(HERE, "README.rst"), encoding="utf-8") as fp:
     README = fp.read()
 
-with open(path.join(HERE, PACKAGE_NAME, "__init__.py"), encoding="utf-8") as fp:
-    VERSION = re.search("__version__ = \"([^\"]+)\"", fp.read()).group(1)
+with open(path.join(HERE, PACKAGE_PATH, "__init__.py"), encoding="utf-8") as fp:
+    VERSION = re.search('__version__ = "([^"]+)"', fp.read()).group(1)
 
 setup(
     name=PACKAGE_NAME,
-    packages=[PACKAGE_NAME],
+    packages=[PACKAGE_PATH],
     version=VERSION,
     long_description=README,
-    description="Pushshift.io API Wrapper for reddit.com public comment/submission search",
-    author="David Marx",
-    author_email="david.marx84@gmail.com",
-    url="http://github.com/dmarx/psaw",
+    description="Pushshift.io API Wrapper for reddit.com search endpoints",
+    author="David Marx (original), typenil (fork)",
+    author_email="code@typenil.com",
+    url="https://github.com/typenil/psaw",
     license="Simplified BSD License",
     install_requires=["requests"],
     keywords="reddit api wrapper pushshift",
