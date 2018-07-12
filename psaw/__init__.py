@@ -7,4 +7,4 @@ https://github.com/dmarx/psaw
 from psaw.pushshift_api_minimal import PushshiftAPIMinimal
 from psaw.pushshift_api import PushshiftAPI
 
-__version__ = "0.0.4"
+__version__ = "0.0.5"
