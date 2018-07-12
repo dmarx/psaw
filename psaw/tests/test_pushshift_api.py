@@ -30,7 +30,7 @@ class TestPushshiftAPI(TestPushshiftAPIMinimal):
             "q": "test query",
         }
 
-        api = PushshiftAPI(rate_limit_per_minute=77)
+        api = PushshiftAPI(rate_limit_per_minute=self._rate_limit)
         api.search_comments(**kwargs)
 
         mock_search.assert_called_once_with(kind="comment", **kwargs)
@@ -46,7 +46,7 @@ class TestPushshiftAPI(TestPushshiftAPIMinimal):
             "q": "test query",
         }
 
-        api = PushshiftAPI(rate_limit_per_minute=77)
+        api = PushshiftAPI(rate_limit_per_minute=self._rate_limit)
         api.search_submissions(**kwargs)
 
         mock_search.assert_called_once_with(kind="submission", **kwargs)

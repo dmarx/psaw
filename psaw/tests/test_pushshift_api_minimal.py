@@ -128,6 +128,8 @@ class TestPushshiftAPIMinimal(TestCase):
         },
     )
 
+    # We always have to set rate limit so that the class doesn't query for it
+    _rate_limit = 60
     _base_init_kwargs = {
         "max_retries": 27,
         "max_sleep": 2390,
@@ -163,14 +165,20 @@ class TestPushshiftAPIMinimal(TestCase):
         self.assertEqual(420, api._rlcache.max_storage)
 
     def test_base_url(self):
-        api = PushshiftAPIMinimal(domain="test-domain", rate_limit_per_minute=77)
+        api = PushshiftAPIMinimal(
+            domain="test-domain", rate_limit_per_minute=self._rate_limit
+        )
         self.assertEqual("https://test-domain.pushshift.io/{endpoint}", api.base_url)
 
     def test_utc_offset_secs(self):
-        api = PushshiftAPIMinimal(detect_local_tz=False)
+        api = PushshiftAPIMinimal(
+            detect_local_tz=False, rate_limit_per_minute=self._rate_limit
+        )
         self.assertEqual(0, api.utc_offset_secs)
 
-        api = PushshiftAPIMinimal(detect_local_tz=True)
+        api = PushshiftAPIMinimal(
+            detect_local_tz=True, rate_limit_per_minute=self._rate_limit
+        )
         for timezone in pytz.common_timezones:
             api._utc_offset_secs = None
             os.environ["TZ"] = timezone
@@ -203,10 +211,14 @@ class TestPushshiftAPIMinimal(TestCase):
         ]
 
         for timestamp in timestamps:
-            api = PushshiftAPIMinimal(detect_local_tz=False)
+            api = PushshiftAPIMinimal(
+                detect_local_tz=False, rate_limit_per_minute=self._rate_limit
+            )
             self.assertEqual(timestamp, api._epoch_utc_to_local(timestamp))
 
-            api = PushshiftAPIMinimal(detect_local_tz=True)
+            api = PushshiftAPIMinimal(
+                detect_local_tz=True, rate_limit_per_minute=self._rate_limit
+            )
             for timezone in pytz.common_timezones:
                 api._utc_offset_secs = None
                 os.environ["TZ"] = timezone
@@ -231,7 +243,9 @@ class TestPushshiftAPIMinimal(TestCase):
 
         kind = "TestKind"
 
-        api = PushshiftAPIMinimal(detect_local_tz=False)
+        api = PushshiftAPIMinimal(
+            detect_local_tz=False, rate_limit_per_minute=self._rate_limit
+        )
         wrapped = api._wrap_thing(test_data, kind)
 
         self.assertIn(kind, str(wrapped))
@@ -253,7 +267,9 @@ class TestPushshiftAPIMinimal(TestCase):
     def test_impose_rate_limit(self, mock_sleep, mock_blocked, mock_interval):
         max_sleep = 69
         backoff = 11
-        api = PushshiftAPIMinimal(max_sleep=max_sleep, backoff=backoff)
+        api = PushshiftAPIMinimal(
+            max_sleep=max_sleep, backoff=backoff, rate_limit_per_minute=self._rate_limit
+        )
 
         mock_blocked.return_value = False
         mock_interval.return_value = 13
@@ -278,7 +294,10 @@ class TestPushshiftAPIMinimal(TestCase):
 
     def test_add_nec_args(self):
         max_results_per_request = 127
-        api = PushshiftAPIMinimal(max_results_per_request=max_results_per_request)
+        api = PushshiftAPIMinimal(
+            max_results_per_request=max_results_per_request,
+            rate_limit_per_minute=self._rate_limit,
+        )
 
         expected_payload = {key: True for key in PushshiftAPIMinimal._limited_args}
 
@@ -347,7 +366,9 @@ class TestPushshiftAPIMinimal(TestCase):
         expected_result = "test_text"
         test_url = "example.com/route"
 
-        api = PushshiftAPIMinimal(max_retries=max_retries, rate_limit_per_minute=60)
+        api = PushshiftAPIMinimal(
+            max_retries=max_retries, rate_limit_per_minute=self._rate_limit
+        )
 
         mock_get.return_value = MockResponse(
             status_code=200, text=json.dumps(expected_result)
@@ -372,7 +393,9 @@ class TestPushshiftAPIMinimal(TestCase):
         expected_result = "test_text"
         test_url = "example.com/route"
 
-        api = PushshiftAPIMinimal(max_retries=max_retries, rate_limit_per_minute=60)
+        api = PushshiftAPIMinimal(
+            max_retries=max_retries, rate_limit_per_minute=self._rate_limit
+        )
 
         mock_get.return_value = MockResponse(
             status_code=429, text=json.dumps(expected_result)
@@ -400,7 +423,9 @@ class TestPushshiftAPIMinimal(TestCase):
         expected_result = "test_text"
         test_url = "example.com/route"
 
-        api = PushshiftAPIMinimal(max_retries=max_retries, rate_limit_per_minute=60)
+        api = PushshiftAPIMinimal(
+            max_retries=max_retries, rate_limit_per_minute=self._rate_limit
+        )
 
         # Test a subset of codes that should cause an outright failure
         for idx, status_code in enumerate(
@@ -436,7 +461,7 @@ class TestPushshiftAPIMinimal(TestCase):
             mock_get.return_value.raise_for_status.assert_called_once()
 
     def test_apply_timestamp(self):
-        api = PushshiftAPIMinimal()
+        api = PushshiftAPIMinimal(rate_limit_per_minute=self._rate_limit)
 
         api._last_timestamp = None
         self.assertDictEqual(
@@ -482,7 +507,10 @@ class TestPushshiftAPIMinimal(TestCase):
             {"sort_type": "seriously_whatever", "sort": "desc", "limit": 110},
         ]
 
-        api = PushshiftAPIMinimal(max_results_per_request=max_results_per_request)
+        api = PushshiftAPIMinimal(
+            max_results_per_request=max_results_per_request,
+            rate_limit_per_minute=self._rate_limit,
+        )
 
         for payload in valid_payloads:
             # Everything should page fine
@@ -539,7 +567,9 @@ class TestPushshiftAPIMinimal(TestCase):
         ]
         mock_get.side_effect = test_data
 
-        api = PushshiftAPIMinimal(max_results_per_request=10, rate_limit_per_minute=60)
+        api = PushshiftAPIMinimal(
+            max_results_per_request=10, rate_limit_per_minute=self._rate_limit
+        )
         results = api._handle_paging(test_url, {"limit": 25})
 
         self.assertEqual(test_data[0], next(results))
@@ -577,7 +607,9 @@ class TestPushshiftAPIMinimal(TestCase):
             ]
         }
 
-        api = PushshiftAPIMinimal(max_results_per_request=10, rate_limit_per_minute=60)
+        api = PushshiftAPIMinimal(
+            max_results_per_request=10, rate_limit_per_minute=self._rate_limit
+        )
         results = api._handle_paging(test_url, {"limit": 5})
 
         self.assertEqual(mock_get.return_value, next(results))
@@ -604,7 +636,9 @@ class TestPushshiftAPIMinimal(TestCase):
             ]
         }
 
-        api = PushshiftAPIMinimal(max_results_per_request=10, rate_limit_per_minute=60)
+        api = PushshiftAPIMinimal(
+            max_results_per_request=10, rate_limit_per_minute=self._rate_limit
+        )
         results = api._handle_paging(test_url, {})
 
         # Run the first call outside of the loop.
@@ -630,7 +664,9 @@ class TestPushshiftAPIMinimal(TestCase):
         kind = "TestKind"
         expected_url = "https://test-domain.pushshift.io/reddit/{}/search".format(kind)
         api = PushshiftAPIMinimal(
-            domain="test-domain", rate_limit_per_minute=77, detect_local_tz=False
+            domain="test-domain",
+            rate_limit_per_minute=self._rate_limit,
+            detect_local_tz=False,
         )
 
         result_gen = api._search(kind)
@@ -662,7 +698,9 @@ class TestPushshiftAPIMinimal(TestCase):
         kind = "TestKind"
         expected_url = "https://test-domain.pushshift.io/reddit/{}/search".format(kind)
         api = PushshiftAPIMinimal(
-            domain="test-domain", rate_limit_per_minute=77, detect_local_tz=False
+            domain="test-domain",
+            rate_limit_per_minute=self._rate_limit,
+            detect_local_tz=False,
         )
 
         result_gen = api._search(kind, return_batch=True)
@@ -699,7 +737,9 @@ class TestPushshiftAPIMinimal(TestCase):
         kind = "TestKind"
         expected_url = "https://test-domain.pushshift.io/reddit/{}/search".format(kind)
         api = PushshiftAPIMinimal(
-            domain="test-domain", rate_limit_per_minute=77, detect_local_tz=False
+            domain="test-domain",
+            rate_limit_per_minute=self._rate_limit,
+            detect_local_tz=False,
         )
 
         result_gen = api._search(kind, stop_condition=lambda x: x.created > 1530049619)
@@ -734,7 +774,9 @@ class TestPushshiftAPIMinimal(TestCase):
         kind = "TestKind"
         expected_url = "https://test-domain.pushshift.io/reddit/{}/search".format(kind)
         api = PushshiftAPIMinimal(
-            domain="test-domain", rate_limit_per_minute=77, detect_local_tz=False
+            domain="test-domain",
+            rate_limit_per_minute=self._rate_limit,
+            detect_local_tz=False,
         )
 
         result_gen = api._search(
