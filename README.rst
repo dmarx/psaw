@@ -1,9 +1,9 @@
 Python Pushshift.io API Wrapper (for comment/submission search)
 ===============================================================
 .. image:: https://img.shields.io/badge/license-BSD--2-blue.svg
-   :target: https://github.com/typenil/psaw/blob/master/LICENSE
+   :target: https://github.com/typenil/psaw/blob/PyPI-diverged/LICENSE
    :alt: License
-.. image:: https://travis-ci.org/typenil/psaw.svg?branch=master
+.. image:: https://travis-ci.org/typenil/psaw.svg?branch=PyPI-diverged
    :target: https://travis-ci.org/typenil/psaw
    :alt: Build
 .. image:: https://api.codeclimate.com/v1/badges/0ec8ed5374c3131a1459/maintainability
