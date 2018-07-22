@@ -1,3 +1,4 @@
+PROJECT_NAME=psaw
 PACKAGE_PATH=psaw
 
 define msg
