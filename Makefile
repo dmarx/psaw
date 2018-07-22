@@ -1,3 +1,4 @@
+PROJECT_NAME=psaw
 PACKAGE_PATH=psaw
 
 define msg
@@ -40,4 +41,3 @@ publish: ## Publish the project to PyPI
 	rm dist/*.tar.gz | true
 	python setup.py sdist bdist_wheel
 	twine upload dist/*
-
