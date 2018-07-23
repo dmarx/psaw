@@ -18,3 +18,5 @@ _build/
 build/
 dist/
 praw.ini
+venv
+coverage.xml
