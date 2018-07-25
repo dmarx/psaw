@@ -259,10 +259,7 @@ class TestPushshiftAPIMinimal(TestCase):
     # pylint: disable=no-self-use
     @mock.patch("src.pushshift_api_minimal.time.sleep")
     def test_impose_rate_limit(self, mock_sleep):
-        mock_rlcache = mock.NonCallableMock(
-            blocked=False,
-            interval=13,
-        )
+        mock_rlcache = mock.NonCallableMock(blocked=False, interval=13)
 
         max_sleep = 69
         backoff = 11

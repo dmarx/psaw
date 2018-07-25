@@ -12,15 +12,15 @@ test:
 
 format:
 	$(call msg,"Running Black Python formatter")
-	find $(SRC_PATH) -iname "*.py" | xargs black
+	find $(SRC_PATH) $(TESTS_PATH) -iname "*.py" | xargs black
 
 lint:
 	$(call msg,"Running PyLint (minus TODOs)")
-	find $(SRC_PATH) -iname "*.py" | xargs pylint --disable=fixme
+	find $(SRC_PATH) $(TESTS_PATH) -iname "*.py" | xargs pylint --disable=fixme
 
 todos:
 	$(call msg,"Retrieving TODO lines")
-	find $(SRC_PATH) -iname "*.py" | xargs pylint | grep '\[W0511(fixme),*'
+	find $(SRC_PATH) $(TESTS_PATH) -iname "*.py" | xargs pylint | grep '\[W0511(fixme),*'
 
 code-coverage:
 	$(call msg,"Running coverage.py")
