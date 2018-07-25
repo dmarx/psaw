@@ -203,7 +203,10 @@ class PushshiftAPIMinimal(object):
                 yield batch
 
             # For paging.
-            self.payload['before'] = thing.created_utc
+            if self.payload.get('sort') == 'desc':
+                self.payload['before'] = thing.created_utc
+            else:
+                self.payload['after'] = thing.created_utc
 
 
 #class PushshiftAPI(PushshiftAPIMinimal):
