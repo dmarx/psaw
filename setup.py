@@ -3,7 +3,7 @@ import re
 from setuptools import setup
 
 PACKAGE_NAME = "pushshift.py"
-PACKAGE_PATH = "src"
+PACKAGE_PATH = "pushshift_py"
 HERE = path.abspath(path.dirname(__file__))
 
 with open(path.join(HERE, "README.rst"), encoding="utf-8") as fp:

@@ -1,6 +1,6 @@
 from unittest import TestCase, mock
 from collections import deque
-from src.rate_limit_cache import RateLimitCache
+from pushshift_py.src.rate_limit_cache import RateLimitCache
 
 
 class TestRateLimitCache(TestCase):
@@ -88,7 +88,7 @@ class TestRateLimitCache(TestCase):
         self.assertFalse(cache.blocked)
 
     @mock.patch(
-        "src.rate_limit_cache.RateLimitCache.delta",
+        "pushshift_py.src.rate_limit_cache.RateLimitCache.delta",
         new_callable=mock.PropertyMock,
         return_value=45,
     )
@@ -128,7 +128,7 @@ class TestRateLimitCache(TestCase):
         self.assertEqual(mock_time.return_value, cache.cache[-1])
 
     @mock.patch(
-        "src.rate_limit_cache.RateLimitCache.blocked",
+        "pushshift_py.src.rate_limit_cache.RateLimitCache.blocked",
         new_callable=mock.PropertyMock,
         return_value=True,
     )

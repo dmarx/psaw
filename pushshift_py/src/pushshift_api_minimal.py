@@ -3,7 +3,7 @@ import time
 import json
 from collections import namedtuple
 import requests
-from src.rate_limit_cache import RateLimitCache
+from pushshift_py.src.rate_limit_cache import RateLimitCache
 
 # pylint: disable=too-many-instance-attributes
 class PushshiftAPIMinimal(object):

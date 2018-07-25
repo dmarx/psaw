@@ -5,8 +5,8 @@ import json
 from datetime import datetime as dt
 from requests.exceptions import HTTPError
 import pytz
-from src.pushshift_api_minimal import PushshiftAPIMinimal
-from tests.mock_response import MockResponse
+from pushshift_py import PushshiftAPIMinimal
+from pushshift_py.tests.mock_response import MockResponse
 
 # pylint: disable=too-many-public-methods
 class TestPushshiftAPIMinimal(TestCase):
@@ -158,7 +158,7 @@ class TestPushshiftAPIMinimal(TestCase):
         api = PushshiftAPIMinimal(**self._base_init_kwargs)
         self._test_base_init(api)
 
-    @mock.patch("src.pushshift_api_minimal.PushshiftAPIMinimal._get")
+    @mock.patch("pushshift_py.PushshiftAPIMinimal._get")
     def test_init_none_rate_limit(self, mock_get):
         mock_get.return_value = {"server_ratelimit_per_minute": 420}
         api = PushshiftAPIMinimal(rate_limit_per_minute=None)
@@ -257,7 +257,7 @@ class TestPushshiftAPIMinimal(TestCase):
             self.assertEqual(val, getattr(wrapped, key))
 
     # pylint: disable=no-self-use
-    @mock.patch("src.pushshift_api_minimal.time.sleep")
+    @mock.patch("pushshift_py.src.pushshift_api_minimal.time.sleep")
     def test_impose_rate_limit(self, mock_sleep):
         mock_rlcache = mock.NonCallableMock(blocked=False, interval=13)
 
@@ -353,8 +353,8 @@ class TestPushshiftAPIMinimal(TestCase):
             ),
         )
 
-    @mock.patch("src.pushshift_api_minimal.PushshiftAPIMinimal._impose_rate_limit")
-    @mock.patch("src.pushshift_api_minimal.requests.get")
+    @mock.patch("pushshift_py.PushshiftAPIMinimal._impose_rate_limit")
+    @mock.patch("pushshift_py.src.pushshift_api_minimal.requests.get")
     def test_get(self, mock_get, mock_rate_limit):
         max_retries = 7
         expected_result = "test_text"
@@ -380,8 +380,8 @@ class TestPushshiftAPIMinimal(TestCase):
 
         mock_get.return_value.raise_for_status.assert_called_once()
 
-    @mock.patch("src.pushshift_api_minimal.PushshiftAPIMinimal._impose_rate_limit")
-    @mock.patch("src.pushshift_api_minimal.requests.get")
+    @mock.patch("pushshift_py.PushshiftAPIMinimal._impose_rate_limit")
+    @mock.patch("pushshift_py.src.pushshift_api_minimal.requests.get")
     def test_get_429(self, mock_get, mock_rate_limit):
         max_retries = 7
         expected_result = "test_text"
@@ -410,8 +410,8 @@ class TestPushshiftAPIMinimal(TestCase):
         # This is the key difference with code 429
         mock_get.return_value.raise_for_status.assert_not_called()
 
-    @mock.patch("src.pushshift_api_minimal.PushshiftAPIMinimal._impose_rate_limit")
-    @mock.patch("src.pushshift_api_minimal.requests.get")
+    @mock.patch("pushshift_py.PushshiftAPIMinimal._impose_rate_limit")
+    @mock.patch("pushshift_py.src.pushshift_api_minimal.requests.get")
     def test_get_raise_for_status(self, mock_get, mock_rate_limit):
         max_retries = 7
         expected_result = "test_text"
@@ -527,7 +527,7 @@ class TestPushshiftAPIMinimal(TestCase):
                 else:
                     self.assertIn("must provide a limit", msg)
 
-    @mock.patch("src.pushshift_api_minimal.PushshiftAPIMinimal._get")
+    @mock.patch("pushshift_py.PushshiftAPIMinimal._get")
     def test_handle_paging_high_limit(self, mock_get):
         test_url = "example.com/route"
         test_data = [
@@ -587,7 +587,7 @@ class TestPushshiftAPIMinimal(TestCase):
         except StopIteration:
             pass
 
-    @mock.patch("src.pushshift_api_minimal.PushshiftAPIMinimal._get")
+    @mock.patch("pushshift_py.PushshiftAPIMinimal._get")
     def test_handle_paging_low_limit(self, mock_get):
         expected_last_timestamp = 1530047819
         test_url = "example.com/route"
@@ -616,7 +616,7 @@ class TestPushshiftAPIMinimal(TestCase):
         except StopIteration:
             pass
 
-    @mock.patch("src.pushshift_api_minimal.PushshiftAPIMinimal._get")
+    @mock.patch("pushshift_py.PushshiftAPIMinimal._get")
     def test_handle_paging_no_limit(self, mock_get):
         expected_last_timestamp = 1530047819
         test_url = "example.com/route"
@@ -651,7 +651,7 @@ class TestPushshiftAPIMinimal(TestCase):
                 test_url, {"limit": 10, "before": expected_last_timestamp}
             )
 
-    @mock.patch("src.pushshift_api_minimal.PushshiftAPIMinimal._handle_paging")
+    @mock.patch("pushshift_py.PushshiftAPIMinimal._handle_paging")
     def test_search(self, mock_paging):
         mock_paging.return_value = self._search_test_data
 
@@ -685,7 +685,7 @@ class TestPushshiftAPIMinimal(TestCase):
         except StopIteration:
             pass
 
-    @mock.patch("src.pushshift_api_minimal.PushshiftAPIMinimal._handle_paging")
+    @mock.patch("pushshift_py.PushshiftAPIMinimal._handle_paging")
     def test_search_batch(self, mock_paging):
         mock_paging.return_value = self._search_test_data
 
@@ -724,7 +724,7 @@ class TestPushshiftAPIMinimal(TestCase):
         except StopIteration:
             pass
 
-    @mock.patch("src.pushshift_api_minimal.PushshiftAPIMinimal._handle_paging")
+    @mock.patch("pushshift_py.PushshiftAPIMinimal._handle_paging")
     def test_search_stop_condition(self, mock_paging):
         mock_paging.return_value = self._search_test_data
 
@@ -761,7 +761,7 @@ class TestPushshiftAPIMinimal(TestCase):
         except StopIteration:
             pass
 
-    @mock.patch("src.pushshift_api_minimal.PushshiftAPIMinimal._handle_paging")
+    @mock.patch("pushshift_py.PushshiftAPIMinimal._handle_paging")
     def test_search_stop_cond_batch(self, mock_paging):
         mock_paging.return_value = self._search_test_data
 

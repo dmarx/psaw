@@ -1,9 +1,9 @@
 Python Pushshift.io API Wrapper (for comment/submission search)
 ===============================================================
 .. image:: https://img.shields.io/badge/license-BSD--2-blue.svg
-   :target: https://github.com/typenil/psaw/blob/PyPI-diverged/LICENSE
+   :target: https://github.com/typenil/pushshift.py/blob/master/LICENSE
    :alt: License
-.. image:: https://travis-ci.org/typenil/psaw.svg?branch=PyPI-diverged
+.. image:: https://travis-ci.org/typenil/psaw.svg?branch=master
    :target: https://travis-ci.org/typenil/psaw
    :alt: Build
 .. image:: https://api.codeclimate.com/v1/badges/0ec8ed5374c3131a1459/maintainability
@@ -77,7 +77,7 @@ Demo usage
 
 .. code-block:: python
 
-    from psaw import PushshiftAPI
+    from pushshift_py import PushshiftAPI
 
     api = PushshiftAPI()
 
@@ -86,7 +86,7 @@ Or to use pushshift search to fetch ids and then use praw to fetch objects:
 .. code-block:: python
 
     import praw
-    from psaw import PushshiftAPI
+    from pushshift_py import PushshiftAPI
 
     r = praw.Reddit(...)
     api = PushshiftAPI(r)
