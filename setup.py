@@ -3,7 +3,7 @@ import re
 from setuptools import setup
 
 PACKAGE_NAME = "pushshift.py"
-PACKAGE_PATH = "psaw"
+PACKAGE_PATH = "src"
 HERE = path.abspath(path.dirname(__file__))
 
 with open(path.join(HERE, "README.rst"), encoding="utf-8") as fp:
@@ -20,7 +20,7 @@ setup(
     description="Pushshift.io API Wrapper for reddit.com search endpoints",
     author="David Marx (original), typenil (fork)",
     author_email="code@typenil.com",
-    url="https://github.com/typenil/psaw",
+    url="https://github.com/typenil/pushshift.py",
     license="Simplified BSD License",
     install_requires=["requests"],
     keywords="reddit api wrapper pushshift",

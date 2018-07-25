@@ -1,6 +1,6 @@
 from unittest import mock
-from psaw.tests.test_pushshift_api_minimal import TestPushshiftAPIMinimal
-from psaw.pushshift_api import PushshiftAPI
+from tests.test_pushshift_api_minimal import TestPushshiftAPIMinimal
+from src.pushshift_api import PushshiftAPI
 
 # pylint: disable=too-many-public-methods
 class TestPushshiftAPI(TestPushshiftAPIMinimal):
@@ -20,7 +20,7 @@ class TestPushshiftAPI(TestPushshiftAPIMinimal):
         self._test_base_init(api)
 
     # pylint: disable=no-self-use
-    @mock.patch("psaw.pushshift_api.PushshiftAPI._search")
+    @mock.patch("src.pushshift_api.PushshiftAPI._search")
     def test_search_comments(self, mock_search):
         kwargs = {
             "limit": 10,
@@ -36,7 +36,7 @@ class TestPushshiftAPI(TestPushshiftAPIMinimal):
         mock_search.assert_called_once_with(kind="comment", **kwargs)
 
     # pylint: disable=no-self-use
-    @mock.patch("psaw.pushshift_api.PushshiftAPI._search")
+    @mock.patch("src.pushshift_api.PushshiftAPI._search")
     def test_search_submissions(self, mock_search):
         kwargs = {
             "limit": 10,
@@ -51,7 +51,7 @@ class TestPushshiftAPI(TestPushshiftAPIMinimal):
 
         mock_search.assert_called_once_with(kind="submission", **kwargs)
 
-    @mock.patch("psaw.pushshift_api.PushshiftAPI._get")
+    @mock.patch("src.pushshift_api.PushshiftAPI._get")
     def test_get_submission_comment_ids(self, mock_get):
         kwargs = {
             "limit": 10,
