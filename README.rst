@@ -22,7 +22,7 @@ Installation
 
 .. code-block:: bash
 
-    pip install psaw
+    pip install pushshift.py
 
 At present, only python 3 is supported.
 
@@ -49,7 +49,8 @@ Features
   maximum backoff limits. A minimum rate limit of 1 request per second is used
   as a default per consultation with Pushshift's maintainer,
   `/u/Stuck_in_the_matrix <https://www.reddit.com/u/Stuck_in_the_matrix>`_.
-* Handles paging of results. Returns all historical results for a given query by default.
+* Handles paging of results when using supported sort options. At the moment, only ``created_utc``
+  sort types page properly. Returns all historical results for a given query by default.
 * Optionally handles incorporation of ``praw`` to fetch objects after getting ids from pushshift
 * If not using ``praw``, returns results in ``comment`` and ``submission`` objects whose
   API is similar to the corresponding ``praw`` objects. Additionally, result objects have
@@ -65,12 +66,11 @@ Features
 WARNINGS
 --------
 
-* Using non-default sort may result in unexpected behavior.
-* Default behavior is to continuously hit the pushshift api. If a query is taking
-  longer than expected to return results, it's possible that psaw is pulling more data
-  than you may want or is caught in some kind of loop.
-* I strongly recommend prototyping queries by printing to stdout to ensure you're getting the 
-  desired behavior.
+* Non-default sorts (i.e. sorting by anything other than ``created_utc``) have limited support from
+  the pushshift.io API. As such, this project will raise an exception for any request that can't
+  provide reliably sorted and paged data.
+  
+  Non-default sorts require a limit <= max_results_per_request (500 by default)
 
 Demo usage
 ----------
