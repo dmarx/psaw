@@ -1,7 +1,7 @@
 Change Log
 ==========
 
-x.x.x (????/??/??)
+0.0.6 (2018/08/06)
 ------------------
 * Fixed `aggs` support.
   * If an aggs parameter is provided to a search method, it will be returned as the first result.
