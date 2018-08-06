@@ -177,9 +177,10 @@ class PushshiftAPIMinimal(object):
                 kind,
                 stop_condition=lambda x: False,
                 return_batch=False,
+                dataset='reddit',
                 **kwargs):
         self.payload = copy.deepcopy(kwargs)
-        endpoint = 'reddit/{}/search'.format(kind)
+        endpoint = '{dataset}/{kind}/search'.format(dataset=dataset, kind=kind)
         url = self.base_url.format(endpoint=endpoint)
         for response in self._handle_paging(url):
             if 'aggs' in response:
