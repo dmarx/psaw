@@ -25,7 +25,7 @@ attempt to familiarize yourself with the Pushshift API documentation to better u
 what search arguments are likely to work.
 
 * `API Documentation on github <https://github.com/pushshift/api>`_
-* Endpoints and parameter descriptions: https://pushshift.io/api-parameters/
+* `Endpoints and parameter descriptions <https://pushshift.io/api-parameters/>`_`
 * `/r/pushshift <https://www.reddit.com/r/pushshift/>`_
 
 
