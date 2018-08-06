@@ -1,6 +1,14 @@
 Change Log
 ==========
 
+x.x.x (????/??/??)
+------------------
+* Fixed (added?) `aggs` support.
+  * If an aggs parameter is provided to a search method, it will be returned as the first result.
+  * Subsequent results will be yielded as though there was no aggs parameter.
+  * To the best of my understanding, PushShift only returns 100 results per agg, and there is not
+    way to page for additional results.
+
 0.0.5 (2018/08/05)
 ------------------
 * New parameter documentation added to README.

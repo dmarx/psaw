@@ -178,8 +178,13 @@ class PushshiftAPIMinimal(object):
         self.payload = copy.deepcopy(kwargs)
         endpoint = 'reddit/{}/search'.format(kind)
         url = self.base_url.format(endpoint=endpoint)
-
         for response in self._handle_paging(url):
+            if 'aggs' in response:
+                yield response['aggs']
+                # Aggs responses are unreliable in subsequent batches with
+                # current search paging implementation. Enforce aggs result
+                # is only returned once.
+                self.payload.pop('aggs')
             results = response['data']
             if len(results) == 0:
                 return
