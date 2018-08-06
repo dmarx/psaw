@@ -1,6 +1,11 @@
 Change Log
 ==========
 
+dev
+------------------
+* Fixed bug that blocked backoff on request issued to determine current rate limit when
+  a new psaw instance is created.
+
 0.0.6 (2018/08/06)
 ------------------
 * Fixed `aggs` support.
