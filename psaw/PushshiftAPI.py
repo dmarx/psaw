@@ -1,4 +1,4 @@
-from collections import namedtuple, deque
+from collections import namedtuple, deque, Counter
 import copy
 import json
 import requests
@@ -242,6 +242,13 @@ class PushshiftAPI(PushshiftAPIMinimal):
 
     def search_submissions(self, **kwargs):
         return self._search_func(kind='submission', **kwargs)
+
+    def redditor_subreddit_activity(self, author, **kwargs):
+        outv = {}
+        for k in ('comment', 'submission'):
+            agg = next(self._search(kind=k, author=author, aggs='subreddit', **kwargs))
+            outv[k] = Counter({rec['key']:rec['doc_count'] for rec in agg['subreddit']})
+        return outv
 
     def _get_submission_comment_ids(self, submission_id, **kwargs):
         self.payload = copy.deepcopy(kwargs)
