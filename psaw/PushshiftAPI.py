@@ -134,6 +134,9 @@ class PushshiftAPIMinimal(object):
             return
         if 'limit' not in payload:
             payload['limit'] = self.max_results_per_request
+        if 'sort' not in payload:
+            # Getting weird results if this is not made explicit. Unclear why.
+            payload['sort'] = 'desc'
         if 'filter' in payload: #and payload.get('created_utc', None) is None:
             if not isinstance(payload['filter'], list):
                 if isinstance(payload['filter'], str):
