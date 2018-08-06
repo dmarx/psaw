@@ -1,6 +1,12 @@
 Change Log
 ==========
 
+0.0.5 (2018/08/05)
+------------------
+* New parameter documentation added to README.
+* Fixed bug with non-default sort.
+* Fixed bug with using praw.Reddit instance with submission search.
+
 0.0.4 (2018/05/18)
 ------------------
 
