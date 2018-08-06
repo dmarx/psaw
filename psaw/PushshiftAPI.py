@@ -4,6 +4,7 @@ import json
 import requests
 import time
 from datetime import datetime as dt
+import warnings
 
 class RateLimitCache(object):
     def __init__(self, n, t=60):
@@ -117,11 +118,10 @@ class PushshiftAPIMinimal(object):
         return thing
 
     def _impose_rate_limit(self, nth_request=0):
-        if not hasattr(self, '_rlcache'):
-            return
         interval = 0
-        if self._rlcache.blocked:
-            interval = self._rlcache.interval
+        if  hasattr(self, '_rlcache'):
+            if self._rlcache.blocked:
+                interval = self._rlcache.interval
         interval = max(interval, self.backoff*nth_request)
         interval = min(interval, self.max_sleep)
         if interval > 0:
@@ -149,10 +149,17 @@ class PushshiftAPIMinimal(object):
     def _get(self, url, payload={}):
         i, success = 0, False
         while (not success) and (i<self.max_retries):
+            if i > 0:
+                warnings.warn("Unable to connect to pushshift.io. Retrying after backoff.")
             self._impose_rate_limit(i)
-            response = requests.get(url, params=payload)
-            success = response.status_code == 200
             i+=1
+            try:
+                response = requests.get(url, params=payload)
+            except requests.ConnectionError:
+                continue
+            success = response.status_code == 200
+        if not success:
+            raise Exception("Unable to connect to pushshift.io. Max retries exceeded.")
         return json.loads(response.text)
 
     def _handle_paging(self, url):
