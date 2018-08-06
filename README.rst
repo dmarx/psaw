@@ -46,7 +46,6 @@ Features
   settings).
 * Simple interface to pass query arguments to the API. The API is sparsely documented,
   so it's often fruitful to just try an argument and see if it works.
-* Limited support for pushshift's ``aggs`` argument.
 * A ``stop_condition`` argument to make it simple to stop yielding results given arbitrary user-defined criteria
 
 WARNINGS
@@ -150,29 +149,27 @@ API requests returning 500 comments each. Alternatively, the generator can be qu
         for c in gen:
             cache.append(c)
 
-Using the ``aggs`` argument to count comments mentioning trump each hour in past week
+Using the ``aggs`` argument to summarize search results
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Replicating the example from the pushshift documentation:
-
-https://api.pushshift.io/reddit/search/comment/?q=trump&after=7d&aggs=created_utc&frequency=hour&size=0
-
-I haven't really experimented much with this functionality of the API, so I figured
-the simplest way to support it would be to just disable most of the bells and whistles
-provided by the API wrapper when the ``aggs`` argument is provided (i.e. paging, converting
-the result to a namedtuple for dot notation attribute access).
+When an aggs parameter is provided to a search method, the first result yielded by the generator
+will contain the aggs result.
 
 .. code-block:: python
 
     api = PushshiftAPI()
-    gen = api.search_comments(q='trump',
-                              after='7d',
-                              aggs='created_utc',
-                              frequency='hour',
-                              size=0,
-                             )
-
-    result = next(gen)
+    gen = api.search_comments(author='nasa', aggs='subreddit')
+    next(gen)
+    #  {'subreddit': [
+    #    {'doc_count': 300, 'key': 'IAmA'},
+    #    {'doc_count': 6, 'key': 'space'},
+    #    {'doc_count': 1, 'key': 'ExposurePorn'},
+    #    {'doc_count': 1, 'key': 'Mars'},
+    #    {'doc_count': 1, 'key': 'OldSchoolCool'},
+    #    {'doc_count': 1, 'key': 'news'},
+    #    {'doc_count': 1, 'key': 'pics'},
+    #    {'doc_count': 1, 'key': 'reddit.com'}]}
+    len(list(gen)) # 312
 
 Using the ``stop_condition`` argument to get the most recent submission by a bot account
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
