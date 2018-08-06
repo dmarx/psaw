@@ -25,7 +25,7 @@ attempt to familiarize yourself with the Pushshift API documentation to better u
 what search arguments are likely to work.
 
 * `API Documentation on github <https://github.com/pushshift/api>`_
-* `Endpoints and parameter descriptions <https://pushshift.io/api-parameters/>`_`
+* `Endpoints and parameter descriptions <https://pushshift.io/api-parameters/>`_
 * `/r/pushshift <https://www.reddit.com/r/pushshift/>`_
 
 
@@ -56,7 +56,7 @@ WARNINGS
 * Default behavior is to continuously hit the pushshift api. If a query is taking
   longer than expected to return results, it's possible that psaw is pulling more data
   than you may want or is caught in some kind of loop.
-* I strongly recommend prototyping queries by printing to stdout to ensure you're getting the 
+* I strongly recommend prototyping queries by printing to stdout to ensure you're getting the
   desired behavior.
 
 Demo usage
