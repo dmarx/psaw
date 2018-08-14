@@ -276,6 +276,8 @@ class PushshiftAPI(PushshiftAPIMinimal):
             gen = [self._get_submission_comment_ids(**kwargs)]
 
         for batch in gen:
+            if not batch:
+                return
             if using_gsci:
                 fullnames = [prefix + base36id for base36id in batch]
             else:
