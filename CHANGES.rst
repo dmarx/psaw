@@ -1,12 +1,12 @@
 Change Log
 ==========
 
-dev
+0.0.7 (2018/08/13)
 ------------------
 * Add `redditor_subreddit_activity` convenience method
-  --> Needs demo in README
 * Fixed bug that blocked backoff on request issued to determine current rate limit when
   a new psaw instance is created.
+* Fixed bug when using praw to get submission comments and no results returned.
 
 0.0.6 (2018/08/06)
 ------------------

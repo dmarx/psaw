@@ -171,6 +171,35 @@ will contain the aggs result.
     #    {'doc_count': 1, 'key': 'reddit.com'}]}
     len(list(gen)) # 312
 
+Using the ``redditor_subreddit_activity`` convenience method
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+If you want to profile a redditors activity as in the ``aggs`` example, the
+``redditor_subreddit_activity`` provides a simple shorthand for profiling a user by the subreddits
+in which they are active, counting comments and submissions separately in a single call,
+and returning Counter objects for commenting and posting activity, respectively.
+
+    api = PushshiftAPI()
+    result = api.redditor_subreddit_activity('nasa')
+    result
+    #{'comment':
+    #   Counter({
+    #      'ExposurePorn': 1,
+    #      'IAmA': 300,
+    #      'Mars': 1,
+    #      'OldSchoolCool': 1,
+    #      'news': 1,
+    #      'pics': 1,
+    #      'reddit.com': 1,
+    #      'space': 6}),
+    # 'submission':
+    #   Counter({
+    #      'IAmA': 3,
+    #      'ISS': 1,
+    #      'Mars': 1,
+    #      'space': 3,
+    #      'u_nasa': 86})}
+
 Using the ``stop_condition`` argument to get the most recent submission by a bot account
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
