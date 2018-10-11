@@ -1,15 +1,19 @@
 import json
 import csv
 
+from utilities import slice_dict
+
 
 class JsonWriter(object):
     """
     Output comments/submissions in JSON format
 
     """
-    def __init__(self, fp, multiple_results_per_file):
+    def __init__(self, fp, multiple_results_per_file,
+                 fields):
         self.fp = fp
         self.multiple_results_per_file = multiple_results_per_file
+        self.fields = fields
         self.items = 0
 
     def header(self):
@@ -21,6 +25,8 @@ class JsonWriter(object):
             self.fp.write(']')
 
     def write(self, obj):
+        obj = slice_dict(obj, self.fields)
+
         if self.multiple_results_per_file and self.items > 0:
             # we've already written something, so
             # append a comma to make this a json list
@@ -48,6 +54,6 @@ class CsvWriter(object):
         pass
 
     def write(self, obj):
+        obj = slice_dict(obj, self.fields)
         self.writer.writerow(obj)
         self.items += 1
-
