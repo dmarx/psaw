@@ -86,3 +86,18 @@ def string_to_list(s):
     if s is not None:
         s = [c.strip() for c in s.split(',')]
     return s
+
+
+class DummyProgressBar(object):
+    """
+    Dummy progress bar that just returns generator but displays no output.
+
+    """
+    def __init__(self, things):
+        self.things = things
+
+    def __enter__(self):
+        return self.things
+
+    def __exit__(self, type, value, traceback):
+        pass

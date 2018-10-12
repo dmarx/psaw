@@ -8,6 +8,12 @@ class Writer(object):
     def __init__(self):
         self.fp = None
 
+    def header(self):
+        pass
+
+    def footer(self):
+        pass
+
     def open(self, fp):
         if hasattr(fp, 'write'):
             self.fp = fp
@@ -21,12 +27,36 @@ class Writer(object):
             self.fp.close()
 
 
+class JsonWriter(Writer):
+    """
+    Output comments/submissions in JSON format
+
+    """
+    def __init__(self, fields, delimiter=',', prettify=False, **kwargs):
+        super().__init__()
+        self.fields = fields
+        self.prettify = prettify
+        self.delimiter = delimiter
+        self.items = 0
+
+        if prettify:
+            self.indent = 2
+            self.delimiter = self.delimiter + '\n'
+        else:
+            self.indent = None
+
+    def write(self, obj):
+        obj = slice_dict(obj, self.fields)
+        json.dump(obj, self.fp, indent=self.indent)
+        self.items += 1
+
+
 class JsonBatchWriter(Writer):
     """
     Output comments/submissions in JSON format
 
     """
-    def __init__(self, fields, delimiter=',', prettify=False):
+    def __init__(self, fields, delimiter=',', prettify=False, **kwargs):
         super().__init__()
         self.fields = fields
         self.prettify = prettify
@@ -62,7 +92,7 @@ class CsvBatchWriter(Writer):
     Output comments/submissions in CSV format
 
     """
-    def __init__(self, fields, delimiter=','):
+    def __init__(self, fields, delimiter=',', **kwargs):
         super().__init__()
         self.fields = fields
         self.items = 0
