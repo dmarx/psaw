@@ -1,9 +1,11 @@
+import sys
+
 import click
 from PushshiftAPI import PushshiftAPI
-from writers import CsvWriter, JsonWriter
+from writers import CsvBatchWriter, JsonBatchWriter
 
 from utilities import validate_fields, peek_first_item
-from utilities import _build_search_kwargs, _string_to_list
+from utilities import build_search_kwargs, string_to_list
 
 
 @click.command()
@@ -21,14 +23,14 @@ def psaw(type, query, subreddits, authors, limit, output, format, fields, proxy)
     api = PushshiftAPI()
     search_args = dict()
 
-    query = _string_to_list(query)
-    fields = _string_to_list(fields)
-    authors = _string_to_list(authors)
-    subreddits = _string_to_list(subreddits)
+    query = string_to_list(query)
+    fields = string_to_list(fields)
+    authors = string_to_list(authors)
+    subreddits = string_to_list(subreddits)
 
     # use a dict to pass args to search_comments() and search_submissions
     # as we can't simply pass some options (eg, filter=None) as that returns no fields
-    search_args = _build_search_kwargs(
+    search_args = build_search_kwargs(
         search_args,
         q=query,
         subreddit=subreddits,
@@ -36,7 +38,7 @@ def psaw(type, query, subreddits, authors, limit, output, format, fields, proxy)
         limit=limit,
         filter=fields,
     )
-
+    print(output)
     gen = api.search_comments(**search_args)
     item, gen = peek_first_item(gen)
     if item is None:
@@ -51,19 +53,16 @@ def psaw(type, query, subreddits, authors, limit, output, format, fields, proxy)
                     bold=True, err=True)
 
     if format == 'json':
-        writer_class = JsonWriter
+        writer = JsonBatchWriter(fields=fields)
     elif format == 'csv':
-        writer_class = CsvWriter
+        writer = CsvBatchWriter(fields=fields)
 
     if output:
-        save_to_single_file(gen, output, writer_class=writer_class, fields=fields,
-                            count=limit)
+        save_to_single_file(gen, output, writer=writer, count=limit)
 
 
-def save_to_single_file(gen, output_file, writer_class, fields, count):
-    print("writing to file {}".format(output_file))
-    writer = writer_class(output_file, multiple_results_per_file=True, fields=fields)
-
+def save_to_single_file(gen, output_file, writer, count):
+    writer.open(output_file)
     writer.header()
     try:
         with click.progressbar(gen, length=count) as things:
@@ -71,6 +70,7 @@ def save_to_single_file(gen, output_file, writer_class, fields, count):
                 writer.write(thing.d_)
     finally:
         writer.footer()
+        writer.close()
 
 
 if __name__ == '__main__':

@@ -4,30 +4,43 @@ import csv
 from utilities import slice_dict
 
 
-class JsonWriter(object):
+class Writer(object):
+    def __init__(self):
+        self.fp = None
+
+    def open(self, fp):
+        if hasattr(fp, 'write'):
+            self.fp = fp
+        else:
+            self.fp = open(fp, 'w')
+
+    def close(self):
+        if hasattr(self.fp, 'close_intelligently'):
+            self.fp.close_intelligently()
+        else:
+            self.fp.close()
+
+
+class JsonBatchWriter(Writer):
     """
     Output comments/submissions in JSON format
 
     """
-    def __init__(self, fp, multiple_results_per_file,
-                 fields):
-        self.fp = fp
-        self.multiple_results_per_file = multiple_results_per_file
+    def __init__(self, fields):
+        super().__init__()
         self.fields = fields
         self.items = 0
 
     def header(self):
-        if self.multiple_results_per_file:
-            self.fp.write('[')
+        self.fp.write('[')
 
     def footer(self):
-        if self.multiple_results_per_file:
-            self.fp.write(']')
+        self.fp.write(']')
 
     def write(self, obj):
         obj = slice_dict(obj, self.fields)
 
-        if self.multiple_results_per_file and self.items > 0:
+        if self.items > 0:
             # we've already written something, so
             # append a comma to make this a json list
             self.fp.write(',')
@@ -35,17 +48,22 @@ class JsonWriter(object):
         self.items += 1
 
 
-class CsvWriter(object):
+class CsvBatchWriter(Writer):
     """
     Output comments/submissions in CSV format
 
     """
-    def __init__(self, fp, multiple_results_per_file, fields, delimiter=','):
-        self.fp = fp
-        self.multiple_results_per_file = multiple_results_per_file
+    def __init__(self, fields, delimiter=','):
         self.fields = fields
-        self.writer = csv.DictWriter(fp, delimiter=delimiter, fieldnames=fields)
         self.items = 0
+        self.writer = None
+        self.delimiter = delimiter
+
+    def open(self, fp):
+        super().open(fp)
+        self.writer = csv.DictWriter(fp,
+                                     delimiter=self.delimiter,
+                                     fieldnames=self.fields)
 
     def header(self):
         self.writer.writeheader()
