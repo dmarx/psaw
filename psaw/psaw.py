@@ -7,9 +7,8 @@ from writers import CsvBatchWriter, JsonBatchWriter
 from utilities import validate_fields, peek_first_item
 from utilities import build_search_kwargs, string_to_list
 
-
 @click.command()
-@click.argument('type', type=click.Choice(['comments', 'submissions']), default='csv')
+@click.argument('search_type', type=click.Choice(['comments', 'submissions']), default='csv')
 @click.option("-q", "--query", help='search term(s)', type=str)
 @click.option("-s", "--subreddits", help='restrict search to subreddit(s)', type=str)
 @click.option("-a", "--authors", help='restrict search to author(s)', type=str)
@@ -19,7 +18,7 @@ from utilities import build_search_kwargs, string_to_list
 @click.option("-f", "--fields", type=str,
               help="fields to retrieve (must be in quotes or have no spaces), defaults to all")
 @click.option("--proxy")
-def psaw(type, query, subreddits, authors, limit, output, format, fields, proxy):
+def psaw(search_type, query, subreddits, authors, limit, output, format, fields, proxy):
     api = PushshiftAPI()
     search_args = dict()
 
@@ -28,8 +27,8 @@ def psaw(type, query, subreddits, authors, limit, output, format, fields, proxy)
     authors = string_to_list(authors)
     subreddits = string_to_list(subreddits)
 
-    # use a dict to pass args to search_comments() and search_submissions
-    # as we can't simply pass some options (eg, filter=None) as that returns no fields
+    # use a dict to pass args to search function because certain parameters
+    # don't have defaults (eg, passing filter=None returns no fields)
     search_args = build_search_kwargs(
         search_args,
         q=query,
@@ -38,14 +37,19 @@ def psaw(type, query, subreddits, authors, limit, output, format, fields, proxy)
         limit=limit,
         filter=fields,
     )
-    print(output)
-    gen = api.search_comments(**search_args)
-    item, gen = peek_first_item(gen)
-    if item is None:
+
+    search_functions = {
+        'comments': api.search_comments,
+        'submissions': api.search_submissions,
+    }[search_type]
+
+    things = search_functions(**search_args)
+    thing, things = peek_first_item(things)
+    if thing is None:
         click.secho("no results found", err=True, bold=True)
         return
 
-    fields, missing_fields = validate_fields(item, fields)
+    fields, missing_fields = validate_fields(thing, fields)
 
     if missing_fields:
         missing_fields = sorted(missing_fields)
@@ -58,14 +62,14 @@ def psaw(type, query, subreddits, authors, limit, output, format, fields, proxy)
         writer = CsvBatchWriter(fields=fields)
 
     if output:
-        save_to_single_file(gen, output, writer=writer, count=limit)
+        save_to_single_file(things, output, writer=writer, count=limit)
 
 
-def save_to_single_file(gen, output_file, writer, count):
+def save_to_single_file(things, output_file, writer, count):
     writer.open(output_file)
     writer.header()
     try:
-        with click.progressbar(gen, length=count) as things:
+        with click.progressbar(things, length=count) as things:
             for thing in things:
                 writer.write(thing.d_)
     finally:
