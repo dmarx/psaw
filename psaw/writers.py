@@ -26,10 +26,18 @@ class JsonBatchWriter(Writer):
     Output comments/submissions in JSON format
 
     """
-    def __init__(self, fields):
+    def __init__(self, fields, delimiter=',', prettify=False):
         super().__init__()
         self.fields = fields
+        self.prettify = prettify
+        self.delimiter = delimiter
         self.items = 0
+
+        if prettify:
+            self.indent = 2
+            self.delimiter = self.delimiter + '\n'
+        else:
+            self.indent = None
 
     def header(self):
         self.fp.write('[')
@@ -43,8 +51,9 @@ class JsonBatchWriter(Writer):
         if self.items > 0:
             # we've already written something, so
             # append a comma to make this a json list
-            self.fp.write(',')
-        json.dump(obj, self.fp)
+            self.fp.write(self.delimiter)
+
+        json.dump(obj, self.fp, indent=self.indent)
         self.items += 1
 
 
@@ -54,6 +63,7 @@ class CsvBatchWriter(Writer):
 
     """
     def __init__(self, fields, delimiter=','):
+        super().__init__()
         self.fields = fields
         self.items = 0
         self.writer = None

@@ -17,8 +17,10 @@ from utilities import build_search_kwargs, string_to_list
 @click.option('--format', type=click.Choice(['json', 'csv']), default='csv')
 @click.option("-f", "--fields", type=str,
               help="fields to retrieve (must be in quotes or have no spaces), defaults to all")
+@click.option("--prettify", is_flag=True, default=False, help="make output slighly less ugly (for json only)")
 @click.option("--proxy")
-def psaw(search_type, query, subreddits, authors, limit, output, format, fields, proxy):
+def psaw(search_type, query, subreddits, authors, limit, output, format,
+         fields, prettify, proxy):
     api = PushshiftAPI()
     search_args = dict()
 
@@ -57,7 +59,7 @@ def psaw(search_type, query, subreddits, authors, limit, output, format, fields,
                     bold=True, err=True)
 
     if format == 'json':
-        writer = JsonBatchWriter(fields=fields)
+        writer = JsonBatchWriter(fields=fields, prettify=prettify)
     elif format == 'csv':
         writer = CsvBatchWriter(fields=fields)
 
