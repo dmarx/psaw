@@ -5,7 +5,8 @@ from utilities import slice_dict
 
 
 class Writer(object):
-    def __init__(self):
+    def __init__(self, fields, prettify=False):
+        self.fields = fields
         self.fp = None
 
     def header(self):
@@ -29,12 +30,11 @@ class Writer(object):
 
 class JsonWriter(Writer):
     """
-    Output comments/submissions in JSON format
+    Output comments/submissions in JSON format, all things to a single file
 
     """
-    def __init__(self, fields, delimiter=',', prettify=False, **kwargs):
-        super().__init__()
-        self.fields = fields
+    def __init__(self, fields, prettify=False, delimiter=',', **kwargs):
+        super().__init__(fields=fields)
         self.prettify = prettify
         self.delimiter = delimiter
         self.items = 0
@@ -53,7 +53,7 @@ class JsonWriter(Writer):
 
 class JsonBatchWriter(JsonWriter):
     """
-    Output comments/submissions in JSON format
+    Output comments/submissions in JSON format, one file per thing
 
     """
 
@@ -75,14 +75,13 @@ class JsonBatchWriter(JsonWriter):
         self.items += 1
 
 
-class CsvBatchWriter(Writer):
+class CsvWriter(Writer):
     """
-    Output comments/submissions in CSV format
+    Output comments/submissions in CSV format, one file per thing
 
     """
     def __init__(self, fields, delimiter=',', **kwargs):
-        super().__init__()
-        self.fields = fields
+        super().__init__(fields=fields)
         self.items = 0
         self.writer = None
         self.delimiter = delimiter
@@ -96,10 +95,15 @@ class CsvBatchWriter(Writer):
     def header(self):
         self.writer.writeheader()
 
-    def footer(self):
-        pass
-
     def write(self, obj):
         obj = slice_dict(obj, self.fields)
         self.writer.writerow(obj)
         self.items += 1
+
+
+class CsvBatchWriter(CsvWriter):
+    """
+    Output comments/submissions in CSV format, all to a single file
+    """
+    # defined just for consistency with Json/JsonBatch
+    pass

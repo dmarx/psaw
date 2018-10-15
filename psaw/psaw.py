@@ -94,6 +94,7 @@ def choose_writer_class(format, batch_mode):
     writer_cls = {
         ('json', False): wt.JsonWriter,
         ('json', True): wt.JsonBatchWriter,
+        ('csv', False): wt.CsvWriter,
         ('csv', True): wt.CsvBatchWriter,
     }[(format, batch_mode)]
 
