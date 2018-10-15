@@ -5,23 +5,43 @@ from utilities import slice_dict
 
 
 class Writer(object):
-    def __init__(self, fields, prettify=False):
+    """
+    Base Writer class
+
+    """
+    def __init__(self, fields):
         self.fields = fields
         self.fp = None
 
     def header(self):
+        """
+        Write header to output file if necessary
+
+        """
         pass
 
     def footer(self):
+        """
+        Write footer to output file if necessary
+
+        """
         pass
 
     def open(self, fp):
+        """
+        Open output file for writing if necessary
+
+        """
         if hasattr(fp, 'write'):
             self.fp = fp
         else:
             self.fp = open(fp, 'w')
 
     def close(self):
+        """
+        Close output file if necessary
+
+        """
         if hasattr(self.fp, 'close_intelligently'):
             self.fp.close_intelligently()
         else:

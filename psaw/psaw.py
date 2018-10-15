@@ -2,6 +2,8 @@ import click
 from PushshiftAPI import PushshiftAPI
 import writers as wt
 import utilities as ut
+from pathlib import Path
+
 
 @click.command()
 @click.argument('search_type', type=click.Choice(['comments', 'submissions']), default='csv')
@@ -21,8 +23,10 @@ import utilities as ut
 @click.option("--dry-run", is_flag=True, default=False,
               help="print potential names of output files, but don't actually write any files")
 @click.option("--proxy")
+@click.option("--no-output-template-check", is_flag=True, default=False)
 def psaw(search_type, query, subreddits, authors, limit,
-         output, output_template, format, fields, prettify, dry_run, proxy):
+         output, output_template, format, fields, prettify, dry_run,
+         no_output_template_check, proxy):
 
     if output is None and output_template is None:
         raise click.UsageError("must supply either --output or --output-template")
@@ -78,6 +82,9 @@ def psaw(search_type, query, subreddits, authors, limit,
     if batch_mode:
         save_to_single_file(things, output, writer=writer, count=limit, dry_run=dry_run)
     else:
+        if not no_output_template_check:
+            validate_output_template(output_template)
+
         save_to_multiple_files(things, output_template, writer=writer,
                                count=limit, dry_run=dry_run)
 
@@ -102,6 +109,16 @@ def choose_writer_class(format, batch_mode):
 
 
 def save_to_single_file(things, output_file, writer, count, dry_run=False):
+    """
+    Write all things to a single file
+
+    :param things: iterable
+    :param output_file: str
+    :param writer: Writer
+    :param count: int
+    :param dry_run: bool
+
+    """
     writer.open(output_file)
     writer.header()
     try:
@@ -115,6 +132,17 @@ def save_to_single_file(things, output_file, writer, count, dry_run=False):
 
 
 def save_to_multiple_files(things, output_template, writer, count, dry_run=False):
+    """
+    Write things to a separate file per thing
+
+    :param things: iterable
+    :param output_template: str
+        template should contain python str format codes, such as "{subreddit}.{id}.json"
+    :param writer: Writer
+    :param count: int
+    :param dry_run: bool
+
+    """
     if dry_run:
         progressbar = ut.DummyProgressBar(things)
     else:
@@ -133,6 +161,31 @@ def save_to_multiple_files(things, output_template, writer, count, dry_run=False
                     writer.footer()
                 finally:
                     writer.close()
+
+
+def validate_output_template(output_template):
+    """
+    Crude sanity check that output template looks reasonable
+
+    :param output_template: str
+
+    """
+    if "{" not in output_template or "}" not in output_template:
+        raise click.BadParameter("output_template must include python "
+                                 "string formatting replacement fields\n"
+                                 "use --no-output-template-check to override check")
+
+    try:
+        p = Path(output_template)
+    except:
+        raise click.BadParameter("output_template does not look like "
+                                 "a valid path\n"
+                                 "use --no-output-template-check to override check")
+
+    if len(p.parts) > 4:
+        raise click.BadParameter("output_template looks like it is going to "
+                                 "create a lot of directories\n"
+                                 "use --no-output-template-check to override check")
 
 
 if __name__ == '__main__':
