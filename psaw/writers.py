@@ -51,23 +51,11 @@ class JsonWriter(Writer):
         self.items += 1
 
 
-class JsonBatchWriter(Writer):
+class JsonBatchWriter(JsonWriter):
     """
     Output comments/submissions in JSON format
 
     """
-    def __init__(self, fields, delimiter=',', prettify=False, **kwargs):
-        super().__init__()
-        self.fields = fields
-        self.prettify = prettify
-        self.delimiter = delimiter
-        self.items = 0
-
-        if prettify:
-            self.indent = 2
-            self.delimiter = self.delimiter + '\n'
-        else:
-            self.indent = None
 
     def header(self):
         self.fp.write('[')
