@@ -25,9 +25,9 @@ from pathlib import Path
 @click.option("--no-output-template-check", is_flag=True, default=False)
 @click.option("--proxy", type=str, default=None)
 @click.option("--verbose", is_flag=True, default=False)
-def psaw(search_type, query, subreddits, authors, limit,
-         output, output_template, format, fields, prettify, dry_run,
-         no_output_template_check, proxy, verbose):
+def cli(search_type, query, subreddits, authors, limit,
+        output, output_template, format, fields, prettify, dry_run,
+        no_output_template_check, proxy, verbose):
 
     if output is None and output_template is None:
         raise click.UsageError("must supply either --output or --output-template")
@@ -211,7 +211,7 @@ def validate_output_template(output_template):
 
 
 if __name__ == '__main__':
-    psaw()
+    cli()
 
 
 
