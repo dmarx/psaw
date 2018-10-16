@@ -1,7 +1,7 @@
 import click
-from PushshiftAPI import PushshiftAPI
-import writers as wt
-import utilities as ut
+from .PushshiftAPI import PushshiftAPI
+from . import writers as wt
+from . import utilities as ut
 from pathlib import Path
 
 

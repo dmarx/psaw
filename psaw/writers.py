@@ -1,7 +1,7 @@
 import json
 import csv
 
-from utilities import slice_dict
+from .utilities import slice_dict
 
 
 class Writer(object):
