@@ -35,7 +35,7 @@ class Writer(object):
         if hasattr(fp, 'write'):
             self.fp = fp
         else:
-            self.fp = open(fp, 'w')
+            self.fp = open(fp, 'w', encoding='utf8')
 
     def close(self):
         """

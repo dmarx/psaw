@@ -22,17 +22,20 @@ from pathlib import Path
               help="make output slighly less ugly (for json only)")
 @click.option("--dry-run", is_flag=True, default=False,
               help="print potential names of output files, but don't actually write any files")
-@click.option("--proxy")
 @click.option("--no-output-template-check", is_flag=True, default=False)
+@click.option("--proxy", type=str, default=None)
+@click.option("--verbose", is_flag=True, default=False)
 def psaw(search_type, query, subreddits, authors, limit,
          output, output_template, format, fields, prettify, dry_run,
-         no_output_template_check, proxy):
+         no_output_template_check, proxy, verbose):
 
     if output is None and output_template is None:
         raise click.UsageError("must supply either --output or --output-template")
 
     if output is not None and output_template is not None:
         raise click.UsageError("can only supply --output or --output-template, not both")
+
+    verbose = verbose or dry_run
 
     if output:
         batch_mode = True
@@ -73,20 +76,21 @@ def psaw(search_type, query, subreddits, authors, limit,
 
     if missing_fields:
         missing_fields = sorted(missing_fields)
-        click.secho("following fields were not retrieved: {}".format(missing_fields),
+        click.secho("server did not return following fields: {}".format(missing_fields),
                     bold=True, err=True)
 
     writer_class = choose_writer_class(format, batch_mode)
     writer = writer_class(fields=fields, prettify=prettify)
 
     if batch_mode:
-        save_to_single_file(things, output, writer=writer, count=limit, dry_run=dry_run)
+        save_to_single_file(things, output, writer=writer,
+                            count=limit, verbose=verbose, dry_run=dry_run)
     else:
         if not no_output_template_check:
             validate_output_template(output_template)
 
         save_to_multiple_files(things, output_template, writer=writer,
-                               count=limit, dry_run=dry_run)
+                               count=limit, verbose=verbose, dry_run=dry_run)
 
 
 def choose_writer_class(format, batch_mode):
@@ -108,7 +112,8 @@ def choose_writer_class(format, batch_mode):
     return writer_cls
 
 
-def save_to_single_file(things, output_file, writer, count, dry_run=False):
+def save_to_single_file(things, output_file, writer, count,
+                        verbose=False, dry_run=False):
     """
     Write all things to a single file
 
@@ -116,9 +121,11 @@ def save_to_single_file(things, output_file, writer, count, dry_run=False):
     :param output_file: str
     :param writer: Writer
     :param count: int
+    :param verbose: bool
     :param dry_run: bool
 
     """
+    count = 0
     writer.open(output_file)
     writer.header()
     try:
@@ -126,12 +133,17 @@ def save_to_single_file(things, output_file, writer, count, dry_run=False):
             for thing in things:
                 if not dry_run:
                     writer.write(thing.d_)
+                    count += 1
     finally:
         writer.footer()
         writer.close()
 
+    if verbose:
+        click.echo("wrote {} items to {}".format(count, output_file))
 
-def save_to_multiple_files(things, output_template, writer, count, dry_run=False):
+
+def save_to_multiple_files(things, output_template, writer, count,
+                           verbose=False, dry_run=False):
     """
     Write things to a separate file per thing
 
@@ -140,6 +152,7 @@ def save_to_multiple_files(things, output_template, writer, count, dry_run=False
         template should contain python str format codes, such as "{subreddit}.{id}.json"
     :param writer: Writer
     :param count: int
+    :param verbose: bool
     :param dry_run: bool
 
     """
@@ -148,6 +161,7 @@ def save_to_multiple_files(things, output_template, writer, count, dry_run=False
     else:
         progressbar = click.progressbar(things, length=count)
 
+    count = 0
     with progressbar as things:
         for thing in things:
             output_file = output_template.format(**thing.d_)
@@ -159,8 +173,12 @@ def save_to_multiple_files(things, output_template, writer, count, dry_run=False
                     writer.header()
                     writer.write(thing.d_)
                     writer.footer()
+                    count += 1
                 finally:
                     writer.close()
+
+    if verbose:
+        click.echo("wrote {} items".format(count))
 
 
 def validate_output_template(output_template):
