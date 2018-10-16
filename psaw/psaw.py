@@ -165,6 +165,10 @@ def save_to_multiple_files(things, output_template, writer, count,
     with progressbar as things:
         for thing in things:
             output_file = output_template.format(**thing.d_)
+            p = Path(output_file)
+            if not p.parent.exists():
+                p.parent.mkdir(parents=True)
+
             if dry_run:
                 print("saving to: {}".format(output_file))
             else:
