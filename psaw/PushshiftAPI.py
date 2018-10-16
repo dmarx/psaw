@@ -63,7 +63,8 @@ class PushshiftAPIMinimal(object):
                  max_results_per_request=500,
                  detect_local_tz=True,
                  utc_offset_secs=None,
-                 domain='api'
+                 domain='api',
+                 https_proxy=None
                 ):
         assert max_results_per_request <= 500
         assert backoff >= 1
@@ -77,6 +78,10 @@ class PushshiftAPIMinimal(object):
         self._detect_local_tz = detect_local_tz
 
         self.domain = domain
+        if https_proxy is not None:
+            self.proxies = {"https": https_proxy }
+        else:
+            self.proxies = {}
 
         if rate_limit_per_minute is None:
             response = self._get(self.base_url.format(endpoint='meta'))
@@ -154,7 +159,7 @@ class PushshiftAPIMinimal(object):
             self._impose_rate_limit(i)
             i+=1
             try:
-                response = requests.get(url, params=payload)
+                response = requests.get(url, params=payload, proxies=self.proxies)
             except requests.ConnectionError:
                 continue
             success = response.status_code == 200

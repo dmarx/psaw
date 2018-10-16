@@ -39,7 +39,7 @@ def psaw(search_type, query, subreddits, authors, limit,
     else:
         batch_mode = False
 
-    api = PushshiftAPI()
+    api = PushshiftAPI(https_proxy=proxy)
     search_args = dict()
 
     query = ut.string_to_list(query)
