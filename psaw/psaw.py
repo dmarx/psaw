@@ -19,7 +19,7 @@ from pathlib import Path
 @click.option("-f", "--fields", type=str,
               help="fields to retrieve (must be in quotes or have no spaces), defaults to all")
 @click.option("--prettify", is_flag=True, default=False,
-              help="make output slighly less ugly (for json only)")
+              help="make output slightly less ugly (for json only)")
 @click.option("--dry-run", is_flag=True, default=False,
               help="print potential names of output files, but don't actually write any files")
 @click.option("--no-output-template-check", is_flag=True, default=False)
