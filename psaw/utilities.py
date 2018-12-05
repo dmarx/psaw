@@ -1,4 +1,7 @@
 import itertools
+import dateutil.parser as dp
+import re
+import click
 
 
 def validate_fields(item, fields=None):
@@ -85,6 +88,33 @@ def string_to_list(s):
     """
     if s is not None:
         s = [c.strip() for c in s.split(',')]
+    return s
+
+
+def string_to_epoch(s):
+    """
+    Convert argument string to epoch if possible
+
+    If argument looks like int + s,h,md (ie, 30d), we'll pass as-is
+    since pushshift can accept this.  Per docs, pushshift supports:
+        Epoch value or Integer + "s,m,h,d" (i.e. 30d for 30 days)
+
+    :param s: str
+    :return: int | str
+
+    """
+    if s is not None:
+        s = s.strip()
+        if re.search('^[0-9]+[smhd]$', s):
+            return s
+
+        try:
+            s = dp.parse(s).timestamp()
+            s = int(s)
+        except ValueError:
+            raise click.BadParameter("could not convert argument to "
+                                     "a datetime: {}".format(s))
+
     return s
 
 

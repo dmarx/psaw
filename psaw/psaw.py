@@ -3,6 +3,7 @@ from .PushshiftAPI import PushshiftAPI
 from . import writers as wt
 from . import utilities as ut
 from pathlib import Path
+import pprint
 
 
 @click.command()
@@ -11,6 +12,10 @@ from pathlib import Path
 @click.option("-s", "--subreddits", help='restrict search to subreddit(s)', type=str)
 @click.option("-a", "--authors", help='restrict search to author(s)', type=str)
 @click.option("-l", "--limit", default=20, help='maximum number of items to retrieve')
+@click.option("--before", help='restrict to results before date '
+                               '(datetime or int + s,m,h,d; eg, 30d for 30 days)', type=str)
+@click.option("--after", help='restrict to results after date '
+                              '(datetime or int + s,m,h,d; eg, 30d for 30 days)', type=str)
 @click.option("-o", "--output", type=click.File(mode='w'),
               help="output file for saving all results in a single file")
 @click.option("--output-template", type=str,
@@ -25,7 +30,7 @@ from pathlib import Path
 @click.option("--no-output-template-check", is_flag=True, default=False)
 @click.option("--proxy", type=str, default=None)
 @click.option("--verbose", is_flag=True, default=False)
-def cli(search_type, query, subreddits, authors, limit,
+def cli(search_type, query, subreddits, authors, limit, before, after,
         output, output_template, format, fields, prettify, dry_run,
         no_output_template_check, proxy, verbose):
 
@@ -49,6 +54,8 @@ def cli(search_type, query, subreddits, authors, limit,
     fields = ut.string_to_list(fields)
     authors = ut.string_to_list(authors)
     subreddits = ut.string_to_list(subreddits)
+    before = ut.string_to_epoch(before)
+    after = ut.string_to_epoch(after)
 
     # use a dict to pass args to search function because certain parameters
     # don't have defaults (eg, passing filter=None returns no fields)
@@ -58,6 +65,8 @@ def cli(search_type, query, subreddits, authors, limit,
         subreddit=subreddits,
         author=authors,
         limit=limit,
+        before=before,
+        after=after,
         filter=fields,
     )
 
@@ -65,6 +74,10 @@ def cli(search_type, query, subreddits, authors, limit,
         'comments': api.search_comments,
         'submissions': api.search_submissions,
     }[search_type]
+
+    if verbose:
+        click.echo("calling api with following arguments:")
+        click.echo(pprint.pformat(search_args))
 
     things = search_functions(**search_args)
     thing, things = ut.peek_first_item(things)
@@ -170,7 +183,7 @@ def save_to_multiple_files(things, output_template, writer, count,
                 p.parent.mkdir(parents=True)
 
             if dry_run:
-                print("saving to: {}".format(output_file))
+                click.echo("saving to: {}".format(output_file))
             else:
                 try:
                     writer.open(output_file)
