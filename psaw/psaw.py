@@ -22,14 +22,17 @@ import pprint
               help="""
               output file name template for saving each result in a separate file
               template can include output directory and fields from each result
-              for example:
-
+              note, if using --filter, any fields in output-template MUST be
+              included in filtered fields
+              
+              example:
               'output_path/{author}.{id}.csv'
               'output_path/{subreddit}_{created_utc}.json'
+
               """)
 @click.option('--format', type=click.Choice(['json', 'csv']), default='csv')
-@click.option("-f", "--fields", type=str,
-              help="fields to retrieve (must be in quotes or have no spaces), defaults to all")
+@click.option("-f", "--filter", "filter_", type=str,
+              help="filter fields to retrieve (must be in quotes or have no spaces), defaults to all")
 @click.option("--prettify", is_flag=True, default=False,
               help="make output slightly less ugly (for json only)")
 @click.option("--dry-run", is_flag=True, default=False,
@@ -38,7 +41,7 @@ import pprint
 @click.option("--proxy", type=str, default=None)
 @click.option("--verbose", is_flag=True, default=False)
 def cli(search_type, query, subreddits, authors, limit, before, after,
-        output, output_template, format, fields, prettify, dry_run,
+        output, output_template, format, filter_, prettify, dry_run,
         no_output_template_check, proxy, verbose):
     """
     retrieve comments or submissions from reddit which meet given criteria
@@ -62,7 +65,7 @@ def cli(search_type, query, subreddits, authors, limit, before, after,
     search_args = dict()
 
     query = ut.string_to_list(query)
-    fields = ut.string_to_list(fields)
+    filter_ = ut.string_to_list(filter_)
     authors = ut.string_to_list(authors)
     subreddits = ut.string_to_list(subreddits)
     before = ut.string_to_epoch(before)
@@ -78,7 +81,7 @@ def cli(search_type, query, subreddits, authors, limit, before, after,
         limit=limit,
         before=before,
         after=after,
-        filter=fields,
+        filter=filter_,
     )
 
     search_functions = {
@@ -96,7 +99,7 @@ def cli(search_type, query, subreddits, authors, limit, before, after,
         click.secho("no results found", err=True, bold=True)
         return
 
-    fields, missing_fields = ut.validate_fields(thing, fields)
+    fields, missing_fields = ut.validate_fields(thing, filter_)
 
     if missing_fields:
         missing_fields = sorted(missing_fields)
