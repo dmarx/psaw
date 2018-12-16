@@ -6,8 +6,8 @@ from pathlib import Path
 import pprint
 
 
-@click.command()
-@click.argument('search_type', type=click.Choice(['comments', 'submissions']), default='csv')
+@click.command(context_settings=dict(max_content_width=100))
+@click.argument('search_type', type=click.Choice(['comments', 'submissions']), default='comments')
 @click.option("-q", "--query", help='search term(s)', type=str)
 @click.option("-s", "--subreddits", help='restrict search to subreddit(s)', type=str)
 @click.option("-a", "--authors", help='restrict search to author(s)', type=str)
@@ -19,7 +19,14 @@ import pprint
 @click.option("-o", "--output", type=click.Path(),
               help="output file for saving all results in a single file")
 @click.option("--output-template", type=str,
-              help="output file name template for saving each result in a separate file")
+              help="""
+              output file name template for saving each result in a separate file
+              template can include output directory and fields from each result
+              for example:
+
+              'output_path/{author}.{id}.csv'
+              'output_path/{subreddit}_{created_utc}.json'
+              """)
 @click.option('--format', type=click.Choice(['json', 'csv']), default='csv')
 @click.option("-f", "--fields", type=str,
               help="fields to retrieve (must be in quotes or have no spaces), defaults to all")
@@ -33,6 +40,10 @@ import pprint
 def cli(search_type, query, subreddits, authors, limit, before, after,
         output, output_template, format, fields, prettify, dry_run,
         no_output_template_check, proxy, verbose):
+    """
+    retrieve comments or submissions from reddit which meet given criteria
+
+    """
 
     if output is None and output_template is None:
         raise click.UsageError("must supply either --output or --output-template")
