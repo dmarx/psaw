@@ -35,7 +35,7 @@ class Writer(object):
         if hasattr(fp, 'write'):
             self.fp = fp
         else:
-            self.fp = open(fp, 'w', encoding='utf8')
+            self.fp = open(fp, 'w', encoding='utf8', newline='')
 
     def close(self):
         """
@@ -108,7 +108,7 @@ class CsvWriter(Writer):
 
     def open(self, fp):
         super().open(fp)
-        self.writer = csv.DictWriter(fp,
+        self.writer = csv.DictWriter(self.fp,
                                      delimiter=self.delimiter,
                                      fieldnames=self.fields)
 

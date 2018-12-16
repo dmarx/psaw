@@ -16,7 +16,7 @@ import pprint
                                '(datetime or int + s,m,h,d; eg, 30d for 30 days)', type=str)
 @click.option("--after", help='restrict to results after date '
                               '(datetime or int + s,m,h,d; eg, 30d for 30 days)', type=str)
-@click.option("-o", "--output", type=click.File(mode='w'),
+@click.option("-o", "--output", type=click.Path(),
               help="output file for saving all results in a single file")
 @click.option("--output-template", type=str,
               help="output file name template for saving each result in a separate file")
