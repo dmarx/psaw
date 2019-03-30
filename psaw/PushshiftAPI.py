@@ -241,6 +241,19 @@ class PushshiftAPI(PushshiftAPIMinimal):
         return self._search_func(kind='comment', **kwargs)
 
     def search_submissions(self, **kwargs):
+        """Gets posts of submissions.
+        
+        Parameters
+        ----------
+        **kwargs
+        limit: int
+            An int >= 0. Regular API has a max of 500 where as psaw can do as much as you need.
+        
+        Return
+        ------
+        A dictionary of submissions based on **kwargs
+        
+        """
         return self._search_func(kind='submission', **kwargs)
 
     def redditor_subreddit_activity(self, author, **kwargs):
