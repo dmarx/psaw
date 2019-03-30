@@ -251,7 +251,7 @@ class PushshiftAPI(PushshiftAPIMinimal):
         
         Return
         ------
-        A dictionary of submissions based on **kwargs
+        A list of submissions based on **kwargs
         
         """
         return self._search_func(kind='submission', **kwargs)
