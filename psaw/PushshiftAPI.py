@@ -158,6 +158,8 @@ class PushshiftAPIMinimal(object):
             except requests.ConnectionError:
                 continue
             success = response.status_code == 200
+            if not success:
+                warnings.warn("Got non 200 code %s" % response.status_code)
         if not success:
             raise Exception("Unable to connect to pushshift.io. Max retries exceeded.")
         return json.loads(response.text)
