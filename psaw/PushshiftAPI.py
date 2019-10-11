@@ -111,7 +111,8 @@ class PushshiftAPIMinimal(object):
 
     def _wrap_thing(self, thing, kind):
         """Mimic praw.Submission and praw.Comment API"""
-        thing['created'] = self._epoch_utc_to_local(thing['created_utc'])
+        if 'created_utc' in thing:
+            thing['created'] = self._epoch_utc_to_local(thing['created_utc'])
         thing['d_'] = copy.deepcopy(thing)
         ThingType = namedtuple(kind, thing.keys())
         thing = ThingType(**thing)
@@ -219,10 +220,11 @@ class PushshiftAPIMinimal(object):
                 yield batch
 
             # For paging.
-            if self.payload.get('sort') == 'desc':
-                self.payload['before'] = thing.created_utc
-            else:
-                self.payload['after'] = thing.created_utc
+            if hasattr(thing, "created_utc"):
+                if self.payload.get('sort') == 'desc':
+                    self.payload['before'] = thing.created_utc
+                else:
+                    self.payload['after'] = thing.created_utc
 
 
 #class PushshiftAPI(PushshiftAPIMinimal):
