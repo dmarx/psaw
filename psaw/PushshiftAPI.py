@@ -46,7 +46,7 @@ class PushshiftAPIMinimal(object):
     #base_url = {'search':'https://api.pushshift.io/reddit/{}/search/',
     #            'meta':'https://api.pushshift.io/meta/'}
     _base_url = 'https://{domain}.pushshift.io/{{endpoint}}'
-    _limited_args = ('aggs')
+    _limited_args = ('aggs', 'ids')
     _thing_prefix = {
         	'Comment':'t1_',
         	'Account':'t2_',
@@ -173,6 +173,11 @@ class PushshiftAPIMinimal(object):
                 else:
                     self.payload['limit'] = limit
                     limit = 0
+            elif 'ids' in self.payload:
+                limit = 0
+                if len(self.payload['ids']) > self.max_results_per_request:
+                    err_msg = "When searching by ID, number of IDs must be fewer than the max number of objects in a single request ({})."
+                    raise NotImplementedError(err_msg.format(self.max_results_per_request))
             self._add_nec_args(self.payload)
 
             yield self._get(url, self.payload)
