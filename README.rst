@@ -179,6 +179,8 @@ If you want to profile a redditors activity as in the ``aggs`` example, the
 in which they are active, counting comments and submissions separately in a single call,
 and returning Counter objects for commenting and posting activity, respectively.
 
+.. code-block:: python
+
     api = PushshiftAPI()
     result = api.redditor_subreddit_activity('nasa')
     result
