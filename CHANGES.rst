@@ -1,6 +1,12 @@
 Change Log
 ==========
 
+0.0.8 (2020/02/29)
+------------------
+* Fixed infinite loop when requesting objects by ID.
+* More descriptive warnings on unsuccessful GET requests (status codes).
+* Minor documentation fix.
+
 0.0.7 (2018/08/13)
 ------------------
 * Add `redditor_subreddit_activity` convenience method
