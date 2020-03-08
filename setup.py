@@ -21,7 +21,11 @@ setup(name=PACKAGE_NAME,
       author_email='david.marx84@gmail.com',
       url='http://github.com/dmarx/psaw',
       license='Simplified BSD License',
-      install_requires=['requests'],
+      install_requires=['requests', 'Click'],
+      entry_points="""
+          [console_scripts]
+          psaw=psaw.psaw:cli
+      """,
       keywords='reddit api wrapper pushshift',
       python_requires='>=3',
       classifiers=[
