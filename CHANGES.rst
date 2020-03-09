@@ -1,6 +1,10 @@
 Change Log
 ==========
 
+0.0.9 (2020/03/08)
+------------------
+* Added (contributed) CLI functionality. Needs README documentation.
+
 0.0.8 (2020/02/29)
 ------------------
 * Fixed infinite loop when requesting objects by ID.
