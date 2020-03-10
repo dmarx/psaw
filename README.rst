@@ -213,7 +213,7 @@ Using the ``stop_condition`` argument to get the most recent submission by a bot
     print(subm.author)
     
 Collecting results in a ``pandas.DataFrame`` for analysis
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 .. code-block:: python
 
