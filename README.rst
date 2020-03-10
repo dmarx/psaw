@@ -234,9 +234,10 @@ Consider the following simple query:
     
 Special attributes:
 
-* `api.metadata_` The metadata data provided by pushshift (if any) from the most recent successful request. 
 * `thing.d_` a dict containing all of the data attributes attached to the thing (which otherwise would be accessed via dot notation). One specific convenience this enables is simplifying pushing results into a pandas dataframe (above).
-
+* `api.metadata_` The metadata data provided by pushshift (if any) from the most recent successful request. The most useful metadata attributes, IMHO, are:
+  * ``api.metadata_.get('shards')`` - For checking if any shards are down, which can impact the result cardinality.
+  * ``api.metadata_.get('total_results')`` - The database-side count of how many total items were found in the query and should be returned after paging through all results. Users have encountered rare edge cases that don't return all expected results, probably due to more than 500 items sharing the same timestamp in a result range. See `issue #47 <https://github.com/dmarx/psaw/issues/47/>`_ for progress resolving this behavior.
 
 Demo usage (CLI)
 ----------------

@@ -1,6 +1,10 @@
 Change Log
 ==========
 
+0.0.10 (...)
+------------
+* Added metadata fetching.
+
 0.0.9 (2020/03/08)
 ------------------
 * Added (contributed) CLI functionality. Needs README documentation.
