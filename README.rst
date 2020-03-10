@@ -10,8 +10,6 @@ Installation
 
     pip install psaw
 
-At present, only python 3 is supported.
-
 Description
 -----------
 
@@ -47,6 +45,7 @@ Features
 * Simple interface to pass query arguments to the API. The API is sparsely documented,
   so it's often fruitful to just try an argument and see if it works.
 * A ``stop_condition`` argument to make it simple to stop yielding results given arbitrary user-defined criteria
+* Commandline interface (CLI) for simplified usage outside of python environment.
 
 WARNINGS
 --------
@@ -58,8 +57,8 @@ WARNINGS
 * I strongly recommend prototyping queries by printing to stdout to ensure you're getting the
   desired behavior.
 
-Demo usage
-----------
+Demo usage (python)
+-------------------
 
 .. code-block:: python
 
@@ -214,6 +213,14 @@ Using the ``stop_condition`` argument to get the most recent submission by a bot
 
     print(subm.author)
 
+Demo usage (CLI)
+----------------
+
+For CLI documentation, run
+
+.. code-block::
+
+    psaw --help
 
 License
 -------
