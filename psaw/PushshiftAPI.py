@@ -82,6 +82,7 @@ class PushshiftAPIMinimal(object):
             self.proxies = {"https": https_proxy }
         else:
             self.proxies = {}
+        self.metadata_ = {}
 
         if rate_limit_per_minute is None:
             response = self._get(self.base_url.format(endpoint='meta'))
@@ -139,6 +140,8 @@ class PushshiftAPIMinimal(object):
             return
         if 'limit' not in payload:
             payload['limit'] = self.max_results_per_request
+        if 'metadata' not in payload:
+            payload['metadata'] = 'true'
         if 'sort' not in payload:
             # Getting weird results if this is not made explicit. Unclear why.
             payload['sort'] = 'desc'
@@ -198,6 +201,7 @@ class PushshiftAPIMinimal(object):
                 return_batch=False,
                 dataset='reddit',
                 **kwargs):
+        self.metadata_ = {}
         self.payload = copy.deepcopy(kwargs)
         endpoint = '{dataset}/{kind}/search'.format(dataset=dataset, kind=kind)
         url = self.base_url.format(endpoint=endpoint)
@@ -208,6 +212,7 @@ class PushshiftAPIMinimal(object):
                 # current search paging implementation. Enforce aggs result
                 # is only returned once.
                 self.payload.pop('aggs')
+            self.metadata_ = response.get('metadata', {})
             results = response['data']
             if len(results) == 0:
                 return
