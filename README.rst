@@ -76,7 +76,6 @@ Or to use pushshift search to fetch ids and then use praw to fetch objects:
     r = praw.Reddit(...)
     api = PushshiftAPI(r)
 
-
 100 most recent submissions
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -212,6 +211,32 @@ Using the ``stop_condition`` argument to get the most recent submission by a bot
         pass
 
     print(subm.author)
+    
+Collecting results in a ``pandas.DataFrame`` for analysis
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. code-block:: python
+
+    import pandas as pd
+    
+    df = pd.Dataframe([thing.d_ for thing in gen])
+
+
+Special Convenience Attributes
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Consider the following simple query:
+
+.. code-block:: python
+
+    gen = api.search_submissions(subreddit='pushshift')
+    thing = next(gen)
+    
+Special attributes:
+
+* `api.metadata_` The metadata data provided by pushshift (if any) from the most recent successful request. 
+* `thing.d_` a dict containing all of the data attributes attached to the thing (which otherwise would be accessed via dot notation). One specific convenience this enables is simplifying pushing results into a pandas dataframe (above).
+
 
 Demo usage (CLI)
 ----------------
