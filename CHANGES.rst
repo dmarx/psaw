@@ -5,6 +5,7 @@ Change Log
 ------------
 * Added metadata fetching.
 * Added warn/throw options upon detection that PushShift shards are down (per available metadata).
+* Documentation improvements.
 
 0.0.9 (2020/03/08)
 ------------------
