@@ -65,7 +65,7 @@ class PushshiftAPIMinimal(object):
                  utc_offset_secs=None,
                  domain='api',
                  https_proxy=None,
-                 shards_down_behavior='warn' # must be one of ['warn','stop' or None]
+                 shards_down_behavior='warn' # must be one of ['warn','stop' or None] # To do: add 'retry'
                 ):
         assert max_results_per_request <= 500
         assert backoff >= 1
@@ -267,6 +267,42 @@ class PushshiftAPIMinimal(object):
 
 class PushshiftAPI(PushshiftAPIMinimal):
     def __init__(self, r=None, *args, **kwargs):
+        """
+        Helper class for interacting with the PushShift API for searching public reddit archival data.
+        
+        :param r: :class:`praw.Reddit` instance. If provided, PushShift will be used to fetch thing IDs, then data will be fetched directly from the reddit API via praw.
+        :type r: class:`praw.Reddit`, optional
+        
+        :param max_retries: Maximum number of retries to attempt before quitting, defaults to 20.
+        :type max_retries: int, optional
+        
+        :param max_sleep: Threshold waiting time (in seconds) between requests, to limit exponential backoff behavior, defaults to 3600 (1 hour).
+        :type max_sleep: int, optional
+        
+        :param backoff: Multiplier for exponential backoff of wait time between failed requests, defaults to 2.
+        :type backoff: int or float, optional
+        
+        :param rate_limit_per_minute: Maximum number of requests per 60 second period. If not provided, inferred from PushShift /meta endpoint.
+        :type rate_limit_per_minute: int, optional
+        
+        :param max_results_per_request: Maximum number of items to return in a single request, defaults to 500.
+        :type max_results_per_request: int, optional
+        
+        :param detect_local_tz: Whether or not to attempt to detect the local time zone to infer `utc_offset_secs`, defaults to True.
+        :type detect_local_tz: boolean, optional
+        
+        :param utc_offset_secs: Number of seconds local timezone is offset from UTC, defaults to None for automatic detection.
+        :type utc_offset_secs: int, optional
+        
+        :param domain: PushShift subdomain, e.g. for accessing features only available in beta, defaults to 'api'.
+        :type domain: str, optional
+        
+        :param https_proxy: URL of HTTPS proxy server to be used for GET requests, defaults to None.
+        :type https_proxy: str, optional
+        
+        :param shards_down_behavior: How PSAW should behave if PushShift reports that some shards were down during a query. Options are "warn" to only emit a warning, "stop" to throw a RuntimeError, or None to take no action. Defaults to "warn".
+        :type shards_down_behavior: str, optional
+        """
         super().__init__(*args, **kwargs)
         self.r = r
         self._search_func = self._search
