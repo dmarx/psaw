@@ -64,7 +64,8 @@ class PushshiftAPIMinimal(object):
                  detect_local_tz=True,
                  utc_offset_secs=None,
                  domain='api',
-                 https_proxy=None
+                 https_proxy=None,
+                 shards_down_behavior='warn' # must be one of ['warn','stop' or None]
                 ):
         assert max_results_per_request <= 500
         assert backoff >= 1
@@ -82,6 +83,7 @@ class PushshiftAPIMinimal(object):
             self.proxies = {"https": https_proxy }
         else:
             self.proxies = {}
+        self.shards_down_behavior = shards_down_behavior
         self.metadata_ = {}
 
         if rate_limit_per_minute is None:
@@ -107,6 +109,15 @@ class PushshiftAPIMinimal(object):
             self._utc_offset_secs = 0
 
         return self._utc_offset_secs
+    
+    @property
+    def shards_are_down(self):
+        shards = self.metadata_.get('shards')
+        if shards is None:
+            return
+        if shards['successful'] != shards['total']:
+            return True
+        return False
 
     def _limited(self, payload):
         """Turn off bells and whistles for special API endpoints"""
@@ -214,6 +225,14 @@ class PushshiftAPIMinimal(object):
                 self.payload.pop('aggs')
             self.metadata_ = response.get('metadata', {})
             results = response['data']
+            
+            shards_down_message = "Not all PushShift shards are active. Query results may be incomplete"
+            if self.shards_are_down and (self.shards_down_behavior is not None) :
+                if self.shards_down_behavior == 'warn':
+                    warnings.warn(shards_down_message)
+                if self.shards_down_behavior == 'stop':
+                    raise RuntimeError(shards_down_message)
+            
             if len(results) == 0:
                 return
             if return_batch:
