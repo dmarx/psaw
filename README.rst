@@ -1,6 +1,8 @@
 Python Pushshift.io API Wrapper (for comment/submission search)
 ===============================================================
 
+Detailed documentation for PSAW is available at: https://psaw.readthedocs.io/en/latest/
+
 .. _installation:
 
 Installation
