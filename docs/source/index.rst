@@ -254,7 +254,7 @@ Demo usage (CLI)
 
 For CLI documentation, run
 
-.. code-block::
+.. code-block:: bash
 
     psaw --help
 
