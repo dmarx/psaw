@@ -8,7 +8,6 @@ PSAW: Python Pushshift.io API Wrapper (for comment/submission search)
 
 .. toctree::
    :maxdepth: 2
-   :caption: Contents:
 
 .. _installation:
 
