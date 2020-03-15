@@ -11,8 +11,17 @@
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 #
 import os
-# import sys
-# sys.path.insert(0, os.path.abspath('.'))
+import sys
+#sys.path.insert(0, os.path.abspath('.'))
+#sys.path.insert(1, os.path.abspath('..'))
+sys.path.insert(0, os.path.abspath('../..'))
+sys.path.insert(1, os.path.abspath('..'))
+sys.path.insert(2, os.path.abspath('.'))
+
+#sys.path.insert(0, ".")
+#sys.path.insert(1, "..")
+
+from psaw import __version__
 
 
 # -- Project information -----------------------------------------------------
@@ -22,7 +31,8 @@ copyright = '2020, David Marx'
 author = 'David Marx'
 
 # The full version, including alpha/beta/rc tags
-release = '0.0.10'
+#release = '0.0.10'
+release = __version__
 
 
 # -- General configuration ---------------------------------------------------

@@ -316,6 +316,10 @@ class PushshiftAPI(PushshiftAPIMinimal):
         return self._search_func(kind='submission', **kwargs)
 
     def redditor_subreddit_activity(self, author, **kwargs):
+        """
+        :param author: Redditor to be profiled
+        :type author: str
+        """
         outv = {}
         for k in ('comment', 'submission'):
             agg = next(self._search(kind=k, author=author, aggs='subreddit', **kwargs))

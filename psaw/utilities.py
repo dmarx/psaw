@@ -97,7 +97,7 @@ def string_to_epoch(s):
 
     If argument looks like int + s,h,md (ie, 30d), we'll pass as-is
     since pushshift can accept this.  Per docs, pushshift supports:
-        Epoch value or Integer + "s,m,h,d" (i.e. 30d for 30 days)
+    Epoch value or Integer + "s,m,h,d" (i.e. 30d for 30 days)
 
     :param s: str
     :return: int | str
