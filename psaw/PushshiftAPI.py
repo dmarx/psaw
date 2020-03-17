@@ -233,6 +233,7 @@ class PushshiftAPIMinimal(object):
                 # is only returned once.
                 self.payload.pop('aggs')
             self.metadata_ = response.get('metadata', {})
+            log.debug('metadata: %s' % self.metadata_)
             results = response['data']
             
             shards_down_message = "Not all PushShift shards are active. Query results may be incomplete"
