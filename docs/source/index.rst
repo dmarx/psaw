@@ -229,6 +229,23 @@ Collecting results in a ``pandas.DataFrame`` for analysis
     
     df = pd.Dataframe([thing.d_ for thing in gen])
 
+Logging
+^^^^^^^
+
+If you would like to peek under the hood (e.g. to see the URL of the GET request to the API), just turn on logging like so:
+
+.. code-block:: python
+
+	import logging 
+
+	handler = logging.StreamHandler()
+	handler.setLevel(logging.INFO)
+
+	logger = logging.getLogger('psaw')
+	logger.setLevel(logging.INFO)
+	logger.addHandler(handler)
+
+For more detailed messages, set the logging level to `DEBUG` instead of `INFO`.
 
 Special Convenience Attributes
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
