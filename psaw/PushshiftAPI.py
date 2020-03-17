@@ -147,6 +147,7 @@ class PushshiftAPIMinimal(object):
         interval = max(interval, self.backoff*nth_request)
         interval = min(interval, self.max_sleep)
         if interval > 0:
+            log.debug("Imposing rate limit, sleeping for %s" % interval)
             time.sleep(interval)
 
     def _add_nec_args(self, payload):
@@ -181,6 +182,7 @@ class PushshiftAPIMinimal(object):
             i+=1
             try:
                 response = requests.get(url, params=payload, proxies=self.proxies)
+                log.info(response.url)
                 log.debug('Response status code: %s' % response.status_code)
             except requests.ConnectionError:
                 log.debug("Connection error caught, retrying. Connection attempts so far: %s" % i+1)
@@ -233,7 +235,7 @@ class PushshiftAPIMinimal(object):
                 # is only returned once.
                 self.payload.pop('aggs')
             self.metadata_ = response.get('metadata', {})
-            log.debug('metadata: %s' % self.metadata_)
+            log.debug('Metadata: %s' % self.metadata_)
             results = response['data']
             
             shards_down_message = "Not all PushShift shards are active. Query results may be incomplete"
