@@ -1,10 +1,13 @@
 from collections import namedtuple, deque, Counter
 import copy
 import json
+import logging
 import requests
 import time
 from datetime import datetime as dt
 import warnings
+
+log = logging.getLogger(__name__)
 
 class RateLimitCache(object):
     def __init__(self, n, t=60):
@@ -87,8 +90,10 @@ class PushshiftAPIMinimal(object):
         self.metadata_ = {}
 
         if rate_limit_per_minute is None:
+            log.debug("Connecting to /meta endpoint to learn rate limit.")
             response = self._get(self.base_url.format(endpoint='meta'))
             rate_limit_per_minute = response['server_ratelimit_per_minute']
+            log.debug("server_ratelimit_per_minute: %s" % rate_limit_per_minute)
         self._rlcache = RateLimitCache(n=rate_limit_per_minute, t=60)
 
     @property
@@ -166,6 +171,8 @@ class PushshiftAPIMinimal(object):
                 payload['filter'].append('created_utc')
 
     def _get(self, url, payload={}):
+        log.debug('URL: %s' % url)
+        log.debug('Payload: %s' % payload)
         i, success = 0, False
         while (not success) and (i<self.max_retries):
             if i > 0:
@@ -174,7 +181,9 @@ class PushshiftAPIMinimal(object):
             i+=1
             try:
                 response = requests.get(url, params=payload, proxies=self.proxies)
+                log.debug('Response status code: %s' % response.status_code)
             except requests.ConnectionError:
+                log.debug("Connection error caught, retrying. Connection attempts so far: %s" % i+1)
                 continue
             success = response.status_code == 200
             if not success:
