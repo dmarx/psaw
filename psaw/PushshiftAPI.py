@@ -63,14 +63,14 @@ class PushshiftAPIMinimal(object):
                  max_sleep=3600,
                  backoff=2,
                  rate_limit_per_minute=None,
-                 max_results_per_request=500,
+                 max_results_per_request=1000,
                  detect_local_tz=True,
                  utc_offset_secs=None,
                  domain='api',
                  https_proxy=None,
                  shards_down_behavior='warn' # must be one of ['warn','stop' or None] # To do: add 'retry'
                 ):
-        assert max_results_per_request <= 500
+        assert max_results_per_request <= 1000
         assert backoff >= 1
 
         self.max_retries = max_retries
@@ -297,7 +297,7 @@ class PushshiftAPI(PushshiftAPIMinimal):
         :param rate_limit_per_minute: Maximum number of requests per 60 second period. If not provided, inferred from PushShift /meta endpoint.
         :type rate_limit_per_minute: int, optional
         
-        :param max_results_per_request: Maximum number of items to return in a single request, defaults to 500.
+        :param max_results_per_request: Maximum number of items to return in a single request, defaults to 1000.
         :type max_results_per_request: int, optional
         
         :param detect_local_tz: Whether or not to attempt to detect the local time zone to infer `utc_offset_secs`, defaults to True.

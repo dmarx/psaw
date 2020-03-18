@@ -1,6 +1,10 @@
 Change Log
 ==========
 
+0.0.12 (2020/03/18)
+-------------------
+* Updated max_results_per_request from 500 to 1000
+
 0.0.11 (2020/03/17)
 -------------------
 * Added some basic logging
