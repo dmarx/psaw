@@ -185,7 +185,7 @@ class PushshiftAPIMinimal(object):
                 log.info(response.url)
                 log.debug('Response status code: %s' % response.status_code)
             except requests.ConnectionError:
-                log.debug("Connection error caught, retrying. Connection attempts so far: %s" % i+1)
+                log.debug("Connection error caught, retrying. Connection attempts so far: %d" % i+1)
                 continue
             success = response.status_code == 200
             if not success:
