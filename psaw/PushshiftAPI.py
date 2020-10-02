@@ -10,39 +10,16 @@ import warnings
 log = logging.getLogger(__name__)
 
 class RateLimitCache(object):
-    def __init__(self, n, t=60):
-        self.n = n
-        self.t = t
-        self.cache = deque()
+    def __init__(self, interval=1):
+        self.interval = interval
+        self.last = None
     @property
-    def delta(self):
-        """Time since earliest call"""
-        if len(self.cache) == 0:
+    def remaining(self):
+        if self.last is None:
             return 0
-        return (time.time() - self.cache[0])
-    def update(self):
-        while self.delta > self.t:
-            try:
-                self.cache.popleft()
-            except IndexError:
-                return
-    @property
-    def blocked(self):
-        """Test if additional calls need to be blocked"""
-        self.update()
-        return len(self.cache) >= self.n
-    @property
-    def interval(self):
-        self.update()
-        if self.t > self.delta:
-             return self.t - self.delta
-        else:
-            return 0
-    def new(self):
-        self.update()
-        if self.blocked:
-            raise Exception("RateLimitCache is blocked.")
-        self.cache.append(time.time())
+        return max(0, self.interval - (time.time() - self.last))
+    def tick(self):
+        self.last = time.time()
 
 
 class PushshiftAPIMinimal(object):
@@ -51,12 +28,12 @@ class PushshiftAPIMinimal(object):
     _base_url = 'https://{domain}.pushshift.io/{{endpoint}}'
     _limited_args = ('aggs', 'ids')
     _thing_prefix = {
-        	'Comment':'t1_',
-        	'Account':'t2_',
-        	'Submission':'t3_',
-        	'Message':'t4_',
-        	'Subreddit':'t5_',
-        	'Award':'t6_'
+            'Comment':'t1_',
+            'Account':'t2_',
+            'Submission':'t3_',
+            'Message':'t4_',
+            'Subreddit':'t5_',
+            'Award':'t6_'
     }
     def __init__(self,
                  max_retries=20,
@@ -94,7 +71,9 @@ class PushshiftAPIMinimal(object):
             response = self._get(self.base_url.format(endpoint='meta'))
             rate_limit_per_minute = response['server_ratelimit_per_minute']
             log.debug("server_ratelimit_per_minute: %s" % rate_limit_per_minute)
-        self._rlcache = RateLimitCache(n=rate_limit_per_minute, t=60)
+        interval = 60 / rate_limit_per_minute
+        print(f"rate_limit_per_minute={rate_limit_per_minute} interval={interval}")
+        self._rlcache = RateLimitCache(interval)
 
     @property
     def base_url(self):
@@ -141,14 +120,15 @@ class PushshiftAPIMinimal(object):
 
     def _impose_rate_limit(self, nth_request=0):
         interval = 0
-        if  hasattr(self, '_rlcache'):
-            if self._rlcache.blocked:
-                interval = self._rlcache.interval
+        if hasattr(self, '_rlcache'):
+            interval = self._rlcache.remaining
         interval = max(interval, self.backoff*nth_request)
         interval = min(interval, self.max_sleep)
         if interval > 0:
             log.debug("Imposing rate limit, sleeping for %s" % interval)
             time.sleep(interval)
+        if hasattr(self, '_rlcache'):
+            self._rlcache.tick()
 
     def _add_nec_args(self, payload):
         """Adds 'limit' and 'created_utc' arguments to the payload as necessary."""
