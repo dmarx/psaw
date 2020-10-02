@@ -221,7 +221,7 @@ Collecting results in a ``pandas.DataFrame`` for analysis
 
     import pandas as pd
     
-    df = pd.Dataframe([thing.d_ for thing in gen])
+    df = pd.DataFrame([thing.d_ for thing in gen])
 
 
 Special Convenience Attributes
