@@ -167,7 +167,7 @@ class PushshiftAPIMinimal(object):
                 log.info(response.url)
                 log.debug('Response status code: %s' % response.status_code)
             except (requests.ConnectionError, requests.Timeout) as e:
-                log.debug(f"Network error: {e}, Retrying ({i + 1}/{self.max_retries}")
+                warnings.warn(f"Network Error: {e}, Retrying ({i + 1}/{self.max_retries}")
                 continue
             success = response.status_code == 200
             if not success:
