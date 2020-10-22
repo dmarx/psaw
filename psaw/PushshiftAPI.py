@@ -45,7 +45,8 @@ class PushshiftAPIMinimal(object):
                  utc_offset_secs=None,
                  domain='api',
                  https_proxy=None,
-                 shards_down_behavior='warn' # must be one of ['warn','stop' or None] # To do: add 'retry'
+                 shards_down_behavior='warn', # must be one of ['warn','stop' or None] # To do: add 'retry'
+                 timeout=5,
                 ):
         assert max_results_per_request <= 1000
         assert backoff >= 1
@@ -64,6 +65,7 @@ class PushshiftAPIMinimal(object):
         else:
             self.proxies = {}
         self.shards_down_behavior = shards_down_behavior
+        self.timeout = timeout
         self.metadata_ = {}
 
         if rate_limit_per_minute is None:
@@ -72,7 +74,6 @@ class PushshiftAPIMinimal(object):
             rate_limit_per_minute = response['server_ratelimit_per_minute']
             log.debug("server_ratelimit_per_minute: %s" % rate_limit_per_minute)
         interval = 60 / rate_limit_per_minute
-        print(f"rate_limit_per_minute={rate_limit_per_minute} interval={interval}")
         self._rlcache = RateLimitCache(interval)
 
     @property
@@ -161,15 +162,17 @@ class PushshiftAPIMinimal(object):
             self._impose_rate_limit(i)
             i+=1
             try:
-                response = requests.get(url, params=payload, proxies=self.proxies)
+                response = requests.get(url, params=payload, proxies=self.proxies,
+                                        timeout=self.timeout)
                 log.info(response.url)
                 log.debug('Response status code: %s' % response.status_code)
-            except requests.ConnectionError:
-                log.debug("Connection error caught, retrying. Connection attempts so far: %s" % i+1)
+            except (requests.ConnectionError, requests.Timeout) as e:
+                log.debug(f"Network error: {e}, Retrying ({i + 1}/{self.max_retries}")
                 continue
             success = response.status_code == 200
             if not success:
-                warnings.warn("Got non 200 code %s" % response.status_code)
+                warnings.warn("Response Code [%s] %s" % (response.status_code, response.reason))
+
         if not success:
             raise Exception("Unable to connect to pushshift.io. Max retries exceeded.")
         return json.loads(response.text)
