@@ -212,9 +212,15 @@ class PushshiftAPIMinimal(object):
                     raise NotImplementedError(err_msg.format(self.max_results_per_request))
             self._add_nec_args(self.payload)
 
-            yield self._get(url, self.payload)
+            data = self._get(url, self.payload)
+            yield data
+            received_size = int(data['metadata']['size'])
+            requested_size = self.payload['limit']
+            # Apparently the API can decide to send less data than desired. We need to send another request in that case
+            if received_size < requested_size:
+                limit += requested_size - received_size
 
-            if (limit is not None) & (limit == 0):
+            if (limit is not None) and (limit == 0):
                 return
 
     def _search(self,
