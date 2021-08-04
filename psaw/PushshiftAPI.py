@@ -161,7 +161,10 @@ class PushshiftAPIMinimal(object):
             payload['metadata'] = 'true'
         if 'sort' not in payload:
             # Getting weird results if this is not made explicit. Unclear why.
-            payload['sort'] = 'desc'
+            if 'after' in payload:
+                payload['sort'] = 'asc'
+            else:
+                payload['sort'] = 'desc'
         if 'filter' in payload: #and payload.get('created_utc', None) is None:
             if not isinstance(payload['filter'], list):
                 if isinstance(payload['filter'], str):
