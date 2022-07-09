@@ -1,7 +1,7 @@
 Python Pushshift.io API Wrapper (for comment/submission search)
 ===============================================================
 
-**THIS REPOSITORY IS STALE** - Please consider using [PMAW](https://github.com/mattpodolak/pmaw) instead, as that tool is actively maintained
+**THIS REPOSITORY IS STALE** - Please consider using `PMAW <https://github.com/mattpodolak/pmaw>`_ instead, as that tool is actively maintained
 
 Detailed documentation for PSAW is available at: https://psaw.readthedocs.io/en/latest/
 
