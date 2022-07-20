@@ -51,12 +51,12 @@ class PushshiftAPIMinimal(object):
     _base_url = 'https://{domain}.pushshift.io/{{endpoint}}'
     _limited_args = ('aggs', 'ids')
     _thing_prefix = {
-        	'Comment':'t1_',
-        	'Account':'t2_',
-        	'Submission':'t3_',
-        	'Message':'t4_',
-        	'Subreddit':'t5_',
-        	'Award':'t6_'
+            'Comment':'t1_',
+            'Account':'t2_',
+            'Submission':'t3_',
+            'Message':'t4_',
+            'Subreddit':'t5_',
+            'Award':'t6_'
     }
     def __init__(self,
                  max_retries=20,
@@ -68,7 +68,8 @@ class PushshiftAPIMinimal(object):
                  utc_offset_secs=None,
                  domain='api',
                  https_proxy=None,
-                 shards_down_behavior='warn' # must be one of ['warn','stop' or None] # To do: add 'retry'
+                 shards_down_behavior='warn',  # must be one of ['warn','stop' or None] # To do: add 'retry'
+                 disable_warnings=False
                 ):
         assert max_results_per_request <= 1000
         assert backoff >= 1
@@ -87,6 +88,7 @@ class PushshiftAPIMinimal(object):
         else:
             self.proxies = {}
         self.shards_down_behavior = shards_down_behavior
+        self.disable_warnings = disable_warnings
         self.metadata_ = {}
 
         if rate_limit_per_minute is None:
@@ -176,7 +178,7 @@ class PushshiftAPIMinimal(object):
         log.debug('Payload: %s' % payload)
         i, success = 0, False
         while (not success) and (i<self.max_retries):
-            if i > 0:
+            if i > 0 and not self.disable_warnings:
                 warnings.warn("Unable to connect to pushshift.io. Retrying after backoff.")
             self._impose_rate_limit(i)
             i+=1
@@ -188,7 +190,7 @@ class PushshiftAPIMinimal(object):
                 log.debug("Connection error caught, retrying. Connection attempts so far: %s" % str(i+1))
                 continue
             success = response.status_code == 200
-            if not success:
+            if not success and not self.disable_warnings:
                 warnings.warn("Got non 200 code %s" % response.status_code)
         if not success:
             raise Exception("Unable to connect to pushshift.io. Max retries exceeded.")
@@ -322,6 +324,9 @@ class PushshiftAPI(PushshiftAPIMinimal):
         
         :param shards_down_behavior: How PSAW should behave if PushShift reports that some shards were down during a query. Options are "warn" to only emit a warning, "stop" to throw a RuntimeError, or None to take no action. Defaults to "warn".
         :type shards_down_behavior: str, optional
+
+        :param disable_warnings: Whether or not to print warning messages, defaults to False.
+        :type disable_warnings: bool, optional
         """
         super().__init__(*args, **kwargs)
         self.r = r
