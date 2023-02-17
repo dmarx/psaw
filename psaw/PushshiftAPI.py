@@ -159,9 +159,9 @@ class PushshiftAPIMinimal(object):
             payload['limit'] = self.max_results_per_request
         if 'metadata' not in payload:
             payload['metadata'] = 'true'
-        if 'sort' not in payload:
+        if 'order' not in payload:
             # Getting weird results if this is not made explicit. Unclear why.
-            payload['sort'] = 'desc'
+            payload['order'] = 'desc'
         if 'filter' in payload: #and payload.get('created_utc', None) is None:
             if not isinstance(payload['filter'], list):
                 if isinstance(payload['filter'], str):
@@ -275,7 +275,7 @@ class PushshiftAPIMinimal(object):
                 yield batch
 
             # For paging.
-            if self.payload.get('sort') == 'desc':
+            if self.payload.get('order') == 'desc':
                 self.payload['before'] = thing.created_utc
             else:
                 self.payload['after'] = thing.created_utc
